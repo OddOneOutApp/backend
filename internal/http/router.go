@@ -15,7 +15,7 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 
 	router.Use(ginzap.Ginzap(utils.RawLogger, time.RFC3339, true))
 
-	router.GET("/ping", func(c *gin.Context) {
+	router.GET("/api/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
