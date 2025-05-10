@@ -1,0 +1,24 @@
+{
+    "name": "OddOneOut Backend",
+    "image": "mcr.microsoft.com/devcontainers/go",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/warrenbuckley/codespace-features/sqlite:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "enkia.tokyo-night",
+                "esbenp.prettier-vscode",
+                "cweijan.vscode-mysql-client2",
+                "golang.go",
+                "wakatime.vscode-wakatime"
+            ],
+            "settings": {
+                "workbench.colorTheme": "Tokyo Night",
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            }
+        }
+    }
+}
