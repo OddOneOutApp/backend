@@ -2,13 +2,15 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Host string `env:"HOST" envDefault:"localhost"`
+	Host   string `env:"HOST" envDefault:"localhost"`
+	Secure bool
 }
 
 func Load() *Config {
@@ -18,7 +20,8 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		Host: os.Getenv("HOST"),
+		Host:   os.Getenv("HOST"),
+		Secure: strings.ToLower(os.Getenv("SECURE")) == "true",
 	}
 
 	validate(cfg)
