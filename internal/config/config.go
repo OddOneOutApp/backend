@@ -1,11 +1,14 @@
 package config
 
 import (
+	"os"
+
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
+	Host string `env:"HOST" envDefault:"localhost"`
 }
 
 func Load() *Config {
@@ -14,7 +17,9 @@ func Load() *Config {
 		utils.Logger.Errorf("Error loading .env file: %v", err)
 	}
 
-	cfg := &Config{}
+	cfg := &Config{
+		Host: os.Getenv("HOST"),
+	}
 
 	validate(cfg)
 
@@ -22,7 +27,7 @@ func Load() *Config {
 }
 
 func validate(cfg *Config) {
-	/* if cfg.TestField == "" {
-		utils.Logger.Fatal("Test field must be set in environment variables")
-	} */
+	if cfg.Host == "" {
+		utils.Logger.Fatal("Host (e.g. example.com) must be set in environment variables")
+	}
 }
