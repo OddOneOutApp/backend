@@ -1,13 +1,12 @@
 package http
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/OddOneOutApp/backend/internal/config"
-	"github.com/OddOneOutApp/backend/internal/database/game"
-	"github.com/OddOneOutApp/backend/internal/database/user"
+	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
-	"github.com/OddOneOutApp/backend/internal/utils/random"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -18,6 +17,96 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 
 	router.Use(ginzap.Ginzap(utils.RawLogger, time.RFC3339, true))
 
+	router.Use(func(c *gin.Context) {
+		path := c.Request.URL.Path
+		if (path == "/api/games" || path == "/api/games/:game_id/join") && c.Request.Method == "POST" {
+			sessionID, err := c.Cookie("session_id")
+			if err != nil {
+				requestBody := struct {
+					Username string `json:"username"`
+				}{}
+				err := json.NewDecoder(c.Request.Body).Decode(&requestBody)
+				if err != nil {
+					utils.Logger.Errorf("Error decoding request body: %v", err)
+					c.JSON(400, gin.H{
+						"error": "Invalid request body",
+					})
+					c.Abort()
+					return
+				}
+
+				session, err := services.CreateSession(db, cfg, requestBody.Username)
+				if err != nil {
+					utils.Logger.Errorf("Error creating session: %v", err)
+					c.JSON(500, gin.H{
+						"error": "Internal server error",
+					})
+					c.Abort()
+					return
+				}
+				c.SetCookie("session_id", session.SessionID, 72*60*60, "/", cfg.Host, cfg.Secure, true)
+				utils.Logger.Debugf("New session created with ID: %s", session.SessionID)
+				c.Set("session", session)
+				c.Next()
+				return
+			}
+			session, err := services.GetSessionBySessionID(db, sessionID)
+			if err != nil {
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(404, gin.H{
+						"error": "Session not found",
+					})
+					c.SetCookie("session_id", "", -1, "/", cfg.Host, cfg.Secure, true)
+					utils.Logger.Debugf("Session not found, cookie cleared")
+					c.Abort()
+					return
+				}
+				utils.Logger.Errorf("Error fetching session: %v", err)
+				c.JSON(500, gin.H{
+					"error": "Internal server error",
+				})
+				c.Abort()
+				return
+			}
+			c.Set("session", session)
+			c.Next()
+			return
+		}
+		sessionID, err := c.Cookie("session_id")
+		if err != nil {
+			c.SetCookie("session_id", "", -1, "/", cfg.Host, cfg.Secure, true)
+			utils.Logger.Debugf("Session ID cookie not found, cleared")
+			c.JSON(401, gin.H{
+				"error": "Session ID cookie not found",
+			})
+			c.Redirect(302, "/")
+			c.Abort()
+			return
+		}
+		session, err := services.GetSessionBySessionID(db, sessionID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.SetCookie("session_id", "", -1, "/", cfg.Host, cfg.Secure, true)
+				utils.Logger.Debugf("Session not found, cleared cookie")
+				c.JSON(401, gin.H{
+					"error": "Session not found",
+				})
+				c.Abort()
+				c.Redirect(302, "/")
+				return
+			}
+			utils.Logger.Errorf("Error fetching session: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			c.Abort()
+			c.Redirect(302, "/")
+			return
+		}
+		c.Set("session", session)
+		c.Next()
+	})
+
 	router.GET("/api/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -25,60 +114,26 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 	})
 
 	router.POST("/api/games", func(c *gin.Context) {
-		sessionID, err := c.Cookie("session_id")
-		if err != nil || sessionID == "" {
-			sessionID = random.RandomString(32)
-			var requestBody struct {
-				Username string `json:"username"`
-			}
+		var session *services.Session
 
-			if err := c.ShouldBindJSON(&requestBody); err != nil {
-				c.JSON(400, gin.H{
-					"error": "Invalid request body",
-				})
-				return
-			}
-
-			username := requestBody.Username
-
-			userObj := &user.User{
-				SessionID: sessionID,
-				Username:  username,
-			}
-			err := db.Create(userObj).Error
-			if err != nil {
-				utils.Logger.Errorf("Error creating user: %v", err)
-				c.JSON(500, gin.H{
-					"error": "Internal server error",
-				})
-				return
-			}
-			c.SetCookie("session_id", sessionID, 72*60*60, "/", cfg.Host, cfg.Secure, true)
-			utils.Logger.Debugf("User created with session ID: %s", sessionID)
+		sessionValue, exists := c.Get("session")
+		if !exists {
+			utils.Logger.Errorf("Session not found in context")
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
 		}
-		var userObj user.User
-		err = db.First(&userObj, "session_id = ?", sessionID).Error
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				c.JSON(404, gin.H{
-					"error": "User not found",
-				})
-				return
-			}
-			utils.Logger.Errorf("Error fetching user: %v", err)
+		session, ok := sessionValue.(*services.Session)
+		if !ok {
+			utils.Logger.Errorf("Invalid session type in context")
 			c.JSON(500, gin.H{
 				"error": "Internal server error",
 			})
 			return
 		}
 
-		gameID := random.RandomString(4)
-
-		err = db.Create(&game.Game{
-			ID:     gameID,
-			HostID: userObj.ID,
-		}).Error
-
+		game, err := services.CreateGame(db, cfg, session.ID)
 		if err != nil {
 			utils.Logger.Errorf("Error creating game: %v", err)
 			c.JSON(500, gin.H{
@@ -86,59 +141,27 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			})
 			return
 		}
-
-		utils.Logger.Infof("Game created with ID: %s for session ID: %s", gameID, sessionID)
-
+		utils.Logger.Infof("Game created with ID: %s for session ID: %s", game.ID, session.ID)
 		c.JSON(200, gin.H{
 			"message": "Game created successfully",
-			"game_id": gameID,
+			"game_id": game.ID,
 		})
 	})
 
 	router.POST("/api/games/:game_id/join", func(c *gin.Context) {
-		sessionID, err := c.Cookie("session_id")
-		if err != nil || sessionID == "" {
-			sessionID = random.RandomString(32)
+		var session *services.Session
 
-			var requestBody struct {
-				Username string `json:"username"`
-			}
-
-			if err := c.ShouldBindJSON(&requestBody); err != nil {
-				c.JSON(400, gin.H{
-					"error": "Invalid request body",
-				})
-				return
-			}
-
-			username := requestBody.Username
-
-			err = db.Create(&user.User{
-				SessionID: sessionID,
-				Username:  username,
-			}).Error
-			if err != nil {
-				utils.Logger.Errorf("Error creating user: %v", err)
-				c.JSON(500, gin.H{
-					"error": "Internal server error",
-				})
-				return
-			}
-
-			c.SetCookie("session_id", sessionID, 72*60*60, "/", cfg.Host, cfg.Secure, true)
-			utils.Logger.Debugf("New session ID created: %s", sessionID)
+		sessionValue, exists := c.Get("session")
+		if !exists {
+			utils.Logger.Errorf("Session not found in context")
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
 		}
-
-		var userObj user.User
-		err = db.First(&userObj, "session_id = ?", sessionID).Error
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				c.JSON(404, gin.H{
-					"error": "User not found",
-				})
-				return
-			}
-			utils.Logger.Errorf("Error fetching user: %v", err)
+		session, ok := sessionValue.(*services.Session)
+		if !ok {
+			utils.Logger.Errorf("Invalid session type in context")
 			c.JSON(500, gin.H{
 				"error": "Internal server error",
 			})
@@ -146,8 +169,7 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		}
 
 		gameID := c.Param("game_id")
-		var gameData game.Game
-		err = db.First(&gameData, "id = ?", gameID).Error
+		game, err := services.GetGameByID(db, gameID)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				c.JSON(404, gin.H{
@@ -161,42 +183,28 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			})
 			return
 		}
-		if gameData.HostID == userObj.ID {
-			c.JSON(400, gin.H{
-				"error": "You cannot join your own game",
-			})
-			return
-		}
-		var userData user.User
-		err = db.First(&userData, "session_id = ?", sessionID).Error
+
+		_, err = game.Join(db, session.ID)
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				c.JSON(404, gin.H{
-					"error": "User not found",
+					"error": "Game not found",
 				})
 				return
 			}
-			utils.Logger.Errorf("Error fetching user: %v", err)
+			if err.Error() == "user is already in the game" {
+				c.JSON(400, gin.H{
+					"error": "You are already in the game",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error joining game: %v", err)
 			c.JSON(500, gin.H{
 				"error": "Internal server error",
 			})
 			return
 		}
-		if userData.ID == gameData.HostID {
-			c.JSON(400, gin.H{
-				"error": "You cannot join your own game",
-			})
-			return
-		}
-		err = db.Model(&gameData).Update("members", &[]string{"test"}).Error
-		if err != nil {
-			utils.Logger.Errorf("Error updating game members: %v", err)
-			c.JSON(500, gin.H{
-				"error": "Internal server error",
-			})
-			return
-		}
-		utils.Logger.Infof("User with session ID: %s joined game with ID: %s", sessionID, gameID)
+		utils.Logger.Infof("User with session ID: %s joined game with ID: %s", session.SessionID, gameID)
 		c.JSON(200, gin.H{
 			"message": "Joined game successfully",
 			"game_id": gameID,
