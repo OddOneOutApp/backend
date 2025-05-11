@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 
 	"github.com/OddOneOutApp/backend/internal/config"
@@ -18,8 +19,9 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 	router.Use(ginzap.Ginzap(utils.RawLogger, time.RFC3339, true))
 
 	router.Use(func(c *gin.Context) {
+		regex := regexp.MustCompile(`^/api/games(/[a-zA-Z0-9]+/join)?$`)
 		path := c.Request.URL.Path
-		if (path == "/api/games" || path == "/api/games/:game_id/join") && c.Request.Method == "POST" {
+		if (regex.MatchString(path)) && c.Request.Method == "POST" {
 			sessionID, err := c.Cookie("session_id")
 			if err == nil {
 				session, err := services.GetSessionBySessionID(db, sessionID)
@@ -55,6 +57,7 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			utils.Logger.Debugf("New session created with ID: %s", session.SessionID)
 			c.Set("session", session)
 			c.Next()
+			return
 		}
 		sessionID, err := c.Cookie("session_id")
 		if err != nil {
