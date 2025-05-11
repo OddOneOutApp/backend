@@ -10,11 +10,12 @@ import (
 )
 
 type Session struct {
-	ID        datatypes.UUID `gorm:"type:uuid;primaryKey"`
-	SessionID string         `json:"session_id" gorm:"index"`
-	Username  string         `json:"username"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	ID         datatypes.UUID `gorm:"type:uuid;primaryKey"`
+	SessionID  string         `json:"session_id" gorm:"index"`
+	Username   string         `json:"username"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	GameMember GameMember     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"game_member"`
 }
 
 func CreateSession(db *gorm.DB, cfg *config.Config, username string) (*Session, error) {
