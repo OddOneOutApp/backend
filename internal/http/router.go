@@ -21,56 +21,40 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		path := c.Request.URL.Path
 		if (path == "/api/games" || path == "/api/games/:game_id/join") && c.Request.Method == "POST" {
 			sessionID, err := c.Cookie("session_id")
+			if err == nil {
+				session, err := services.GetSessionBySessionID(db, sessionID)
+				if err == nil {
+					c.Set("session", session)
+					c.Next()
+					return
+				}
+			}
+			requestBody := struct {
+				Username string `json:"username"`
+			}{}
+			err = json.NewDecoder(c.Request.Body).Decode(&requestBody)
 			if err != nil {
-				requestBody := struct {
-					Username string `json:"username"`
-				}{}
-				err := json.NewDecoder(c.Request.Body).Decode(&requestBody)
-				if err != nil {
-					utils.Logger.Errorf("Error decoding request body: %v", err)
-					c.JSON(400, gin.H{
-						"error": "Invalid request body",
-					})
-					c.Abort()
-					return
-				}
-
-				session, err := services.CreateSession(db, cfg, requestBody.Username)
-				if err != nil {
-					utils.Logger.Errorf("Error creating session: %v", err)
-					c.JSON(500, gin.H{
-						"error": "Internal server error",
-					})
-					c.Abort()
-					return
-				}
-				c.SetCookie("session_id", session.SessionID, 72*60*60, "/", cfg.Host, cfg.Secure, true)
-				utils.Logger.Debugf("New session created with ID: %s", session.SessionID)
-				c.Set("session", session)
-				c.Next()
+				utils.Logger.Errorf("Error decoding request body: %v", err)
+				c.JSON(400, gin.H{
+					"error": "Invalid request body",
+				})
+				c.Abort()
 				return
 			}
-			session, err := services.GetSessionBySessionID(db, sessionID)
+
+			session, err := services.CreateSession(db, cfg, requestBody.Username)
 			if err != nil {
-				if err == gorm.ErrRecordNotFound {
-					c.JSON(404, gin.H{
-						"error": "Session not found",
-					})
-					c.SetCookie("session_id", "", -1, "/", cfg.Host, cfg.Secure, true)
-					utils.Logger.Debugf("Session not found, cookie cleared")
-					c.Abort()
-					return
-				}
-				utils.Logger.Errorf("Error fetching session: %v", err)
+				utils.Logger.Errorf("Error creating session: %v", err)
 				c.JSON(500, gin.H{
 					"error": "Internal server error",
 				})
 				c.Abort()
 				return
 			}
+			c.SetCookie("session_id", session.SessionID, 72*60*60, "/", cfg.Host, cfg.Secure, true)
+			utils.Logger.Debugf("New session created with ID: %s", session.SessionID)
 			c.Set("session", session)
 			c.Next()
-			return
 		}
 		sessionID, err := c.Cookie("session_id")
 		if err != nil {
