@@ -1,8 +1,7 @@
 package database
 
 import (
-	"github.com/OddOneOutApp/backend/internal/database/game"
-	"github.com/OddOneOutApp/backend/internal/database/user"
+	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -15,7 +14,7 @@ func New() *gorm.DB {
 	}
 
 	// Auto-migrate the models
-	err = db.AutoMigrate(&user.User{}, &game.Game{}, &game.GameMember{})
+	err = db.AutoMigrate(&services.Game{}, &services.GameMember{}, &services.Session{})
 	if err != nil {
 		utils.Logger.Fatalf("failed to auto-migrate database: %v", err)
 	}
