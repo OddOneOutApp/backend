@@ -146,3 +146,13 @@ func (game *Game) GetMembers(db *gorm.DB) ([]GameMember, error) {
 
 	return gameMembers, nil
 }
+
+func (game *Game) IsHost(db *gorm.DB, userID datatypes.UUID) (bool, error) {
+	var gameMemberObj GameMember
+	err := db.Where("game_id = ? AND user_id = ?", game.ID, userID).First(&gameMemberObj).Error
+	if err != nil {
+		return false, err
+	}
+
+	return gameMemberObj.Host, nil
+}
