@@ -21,6 +21,12 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 	router.Use(func(c *gin.Context) {
 		regex := regexp.MustCompile(`^/api/games(/[a-zA-Z0-9]+/join)?$`)
 		path := c.Request.URL.Path
+
+		if path == "/api/categories" {
+			c.Next()
+			return
+		}
+
 		if (regex.MatchString(path)) && c.Request.Method == "POST" {
 			sessionID, err := c.Cookie("session_id")
 			if err == nil {
@@ -251,6 +257,20 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			"game_id": gameID,
 		})
 	}) */
+
+	router.GET("/api/categories", func(c *gin.Context) {
+		categories, err := services.GetAvailableCategories()
+		if err != nil {
+			utils.Logger.Errorf("Error fetching categories: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		c.JSON(200, gin.H{
+			"categories": categories,
+		})
+	})
 
 	router.Run(":8080")
 }
