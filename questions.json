@@ -1,0 +1,254 @@
+{
+    "categories": [
+        {
+            "name": "Life",
+            "questions": [
+                {
+                    "regular": "What time do you usually wake up on weekends?",
+                    "sneaky": "What time do you usually go to bed on weekends?"
+                },
+                {
+                    "regular": "How many hours of sleep do you need to feel rested?",
+                    "sneaky": "How many hours of sleep do you usually get?"
+                },
+                {
+                    "regular": "What's the first thing you do in the morning?",
+                    "sneaky": "What's the last thing you do before bed?"
+                },
+                {
+                    "regular": "What household chore do you dislike the most?",
+                    "sneaky": "What household chore do you find the easiest?"
+                },
+                {
+                    "regular": "How often do you exercise in a week?",
+                    "sneaky": "How often do you clean your house in a week?"
+                }
+            ]
+        },
+        {
+            "name": "Hobbies",
+            "questions": [
+                {
+                    "regular": "What's a hobby you picked up during the pandemic?",
+                    "sneaky": "What's a hobby you've always wanted to try but never have?"
+                },
+                {
+                    "regular": "What is your favorite board game?",
+                    "sneaky": "What board game do you find overrated?"
+                },
+                {
+                    "regular": "What's the most creative project you've ever worked on?",
+                    "sneaky": "What's a creative activity you find boring?"
+                },
+                {
+                    "regular": "How many books do you read in a year?",
+                    "sneaky": "How many movies do you watch in a year?"
+                },
+                {
+                    "regular": "What type of music do you listen to while relaxing?",
+                    "sneaky": "What type of music do you listen to while working?"
+                }
+            ]
+        },
+        {
+            "name": "Food",
+            "questions": [
+                {
+                    "regular": "What's your favorite pizza topping?",
+                    "sneaky": "What's a pizza topping you dislike?"
+                },
+                {
+                    "regular": "How do you like your eggs cooked?",
+                    "sneaky": "How do you like your steak cooked?"
+                },
+                {
+                    "regular": "What is your go-to comfort food?",
+                    "sneaky": "What is your least favorite fast food item?"
+                },
+                {
+                    "regular": "What's the spiciest food you've ever eaten?",
+                    "sneaky": "What's the most exotic food you've ever eaten?"
+                },
+                {
+                    "regular": "Which dessert do you never get tired of?",
+                    "sneaky": "Which dessert do you think is overrated?"
+                }
+            ]
+        },
+        {
+            "name": "Pop Culture",
+            "questions": [
+                {
+                    "regular": "Who is your favorite superhero?",
+                    "sneaky": "Who is the most overrated superhero?"
+                },
+                {
+                    "regular": "What TV show are you currently binge-watching?",
+                    "sneaky": "What TV show do you think everyone should watch?"
+                },
+                {
+                    "regular": "Name a movie you could watch over and over.",
+                    "sneaky": "Name a movie you would never watch again."
+                },
+                {
+                    "regular": "What is your favorite music genre?",
+                    "sneaky": "What is a music genre you don't listen to often?"
+                },
+                {
+                    "regular": "Which celebrity would you like to meet?",
+                    "sneaky": "Which celebrity do you think is overhyped?"
+                }
+            ]
+        },
+        {
+            "name": "Hypothetical Scenarios",
+            "questions": [
+                {
+                    "regular": "If you could live in any time period, which would you choose?",
+                    "sneaky": "If you could visit any time period, which would it be?"
+                },
+                {
+                    "regular": "What superpower would you want the most?",
+                    "sneaky": "What superpower would you never want to have?"
+                },
+                {
+                    "regular": "If you could have dinner with any historical figure, who would it be?",
+                    "sneaky": "If you could have dinner with any fictional character, who would it be?"
+                },
+                {
+                    "regular": "What would you do if you won the lottery?",
+                    "sneaky": "What would you never spend lottery money on?"
+                },
+                {
+                    "regular": "What animal would you want as a pet if there were no restrictions?",
+                    "sneaky": "What wild animal do you think would make the worst pet?"
+                }
+            ]
+        },
+        {
+            "name": "Relationships",
+            "questions": [
+                {
+                    "regular": "What is the most important quality in a friend?",
+                    "sneaky": "What is the most annoying quality in a friend?"
+                },
+                {
+                    "regular": "At what age did you have your first crush?",
+                    "sneaky": "At what age did you have your first heartbreak?"
+                },
+                {
+                    "regular": "How do you usually celebrate anniversaries?",
+                    "sneaky": "How do you usually celebrate birthdays?"
+                },
+                {
+                    "regular": "What is a great first date idea?",
+                    "sneaky": "What is a terrible first date idea?"
+                },
+                {
+                    "regular": "What is the best gift you've ever given someone?",
+                    "sneaky": "What is the worst gift you've ever received?"
+                }
+            ]
+        },
+        {
+            "name": "Travel",
+            "questions": [
+                {
+                    "regular": "What is your favorite travel destination?",
+                    "sneaky": "What is your least favorite travel destination?"
+                },
+                {
+                    "regular": "What is one place you haven't visited but want to?",
+                    "sneaky": "What is one place you have visited but don't want to return to?"
+                },
+                {
+                    "regular": "Do you prefer beaches or mountains?",
+                    "sneaky": "Do you prefer cities or countryside?"
+                },
+                {
+                    "regular": "What is your travel must-have item?",
+                    "sneaky": "What is your travel must-avoid item?"
+                },
+                {
+                    "regular": "What is the longest flight you've ever taken?",
+                    "sneaky": "What is the shortest flight you've ever taken?"
+                }
+            ]
+        },
+        {
+            "name": "Work and Career",
+            "questions": [
+                {
+                    "regular": "What was your first job?",
+                    "sneaky": "What was your worst job?"
+                },
+                {
+                    "regular": "What is your dream job?",
+                    "sneaky": "What is a job you would never want to do?"
+                },
+                {
+                    "regular": "What is the most valuable skill in your career?",
+                    "sneaky": "What is the most undervalued skill in your career?"
+                },
+                {
+                    "regular": "What time do you prefer starting work?",
+                    "sneaky": "What time do you prefer ending work?"
+                },
+                {
+                    "regular": "What is the best workplace perk you've ever had?",
+                    "sneaky": "What is the worst workplace rule you've ever encountered?"
+                }
+            ]
+        },
+        {
+            "name": "Sports",
+            "questions": [
+                {
+                    "regular": "What is your favorite sport to play?",
+                    "sneaky": "What is your favorite sport to watch?"
+                },
+                {
+                    "regular": "What team do you root for the most?",
+                    "sneaky": "What team do you dislike the most?"
+                },
+                {
+                    "regular": "What is the most exciting sporting event you've attended?",
+                    "sneaky": "What is the most boring sporting event you've attended?"
+                },
+                {
+                    "regular": "What sport do you wish you were better at?",
+                    "sneaky": "What sport do you wish you knew more about?"
+                },
+                {
+                    "regular": "What is the most difficult sport to play?",
+                    "sneaky": "What is the most dangerous sport to play?"
+                }
+            ]
+        },
+        {
+            "name": "Technology",
+            "questions": [
+                {
+                    "regular": "What is the app you use the most on your phone?",
+                    "sneaky": "What is the app you dislike the most on your phone?"
+                },
+                {
+                    "regular": "What is a gadget you can't live without?",
+                    "sneaky": "What is a gadget you've never used but want to try?"
+                },
+                {
+                    "regular": "What is your favorite social media platform?",
+                    "sneaky": "What is your least favorite social media platform?"
+                },
+                {
+                    "regular": "What is the most useful tech invention in the last decade?",
+                    "sneaky": "What is the most overrated tech invention in the last decade?"
+                },
+                {
+                    "regular": "What is your preferred operating system?",
+                    "sneaky": "What is an operating system you avoid using?"
+                }
+            ]
+        }
+    ]
+}
