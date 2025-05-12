@@ -101,22 +101,8 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 	})
 
 	router.POST("/api/games", func(c *gin.Context) {
-		var session *services.Session
-
-		sessionValue, exists := c.Get("session")
-		if !exists {
-			utils.Logger.Errorf("Session not found in context")
-			c.JSON(500, gin.H{
-				"error": "Internal server error",
-			})
-			return
-		}
-		session, ok := sessionValue.(*services.Session)
+		session, ok := getSessionFromContext(c)
 		if !ok {
-			utils.Logger.Errorf("Invalid session type in context")
-			c.JSON(500, gin.H{
-				"error": "Internal server error",
-			})
 			return
 		}
 
@@ -136,22 +122,8 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 	})
 
 	router.POST("/api/games/:game_id/join", func(c *gin.Context) {
-		var session *services.Session
-
-		sessionValue, exists := c.Get("session")
-		if !exists {
-			utils.Logger.Errorf("Session not found in context")
-			c.JSON(500, gin.H{
-				"error": "Internal server error",
-			})
-			return
-		}
-		session, ok := sessionValue.(*services.Session)
+		session, ok := getSessionFromContext(c)
 		if !ok {
-			utils.Logger.Errorf("Invalid session type in context")
-			c.JSON(500, gin.H{
-				"error": "Internal server error",
-			})
 			return
 		}
 
