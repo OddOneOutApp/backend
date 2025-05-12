@@ -106,7 +106,28 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			return
 		}
 
-		game, err := services.CreateGame(db, cfg, session.ID)
+		type createGameRequest struct {
+			Category string `json:"category"`
+			Username string `json:"username"`
+		}
+
+		var requestBody createGameRequest
+		if err := c.ShouldBindJSON(&requestBody); err != nil {
+			c.JSON(400, gin.H{
+				"error": "Invalid request body: " + err.Error(),
+			})
+			return
+		}
+
+		// Make sure category is not empty
+		if requestBody.Category == "" {
+			c.JSON(400, gin.H{
+				"error": "Category is required",
+			})
+			return
+		}
+
+		game, err := services.CreateGame(db, cfg, session.ID, requestBody.Category)
 		if err != nil {
 			utils.Logger.Errorf("Error creating game: %v", err)
 			c.JSON(500, gin.H{

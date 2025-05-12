@@ -1,11 +1,7 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"math/rand/v2"
-	"os"
 	"time"
 
 	"github.com/OddOneOutApp/backend/internal/config"
@@ -32,45 +28,11 @@ type GameMember struct {
 	Host      bool           `json:"host"`
 }
 
-type Categories struct {
-	Categories []Category `json:"categories"`
-}
-
-type Category struct {
-	Name      string     `json:"name"`
-	Questions []Question `json:"questions"`
-}
-
-type Question struct {
-	Regular string `json:"regular"`
-	Sneaky  string `json:"sneaky"`
-}
-
 /* func (game *Game) StartGame() error {
 
 } */
 
-func selectRandomQuestion() (string, string, error) {
-	jsonFile, err := os.Open("questions.json")
-	if err != nil {
-		return "", "", err
-	}
-	defer jsonFile.Close()
-
-	byteValue, _ := io.ReadAll(jsonFile)
-	var categories Categories
-	err = json.Unmarshal(byteValue, &categories)
-	if err != nil {
-		return "", "", err
-	}
-	randomCategoryIndex := rand.IntN(len(categories.Categories) - 1)
-	randomQuestionIndex := rand.IntN(len(categories.Categories[randomCategoryIndex].Questions) - 1)
-	randomCategory := categories.Categories[randomCategoryIndex]
-	randomQuestion := randomCategory.Questions[randomQuestionIndex]
-	return randomQuestion.Regular, randomQuestion.Sneaky, nil
-}
-
-func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID) (*Game, error) {
+func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID, category string) (*Game, error) {
 	// Check if user is already in a game
 	var existingMember GameMember
 	result := db.Where("user_id = ?", hostID).First(&existingMember)
@@ -82,7 +44,7 @@ func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID) (*Game, 
 		return nil, result.Error
 	}
 
-	regularQuestion, sneakyQuestion, err := selectRandomQuestion()
+	regularQuestion, sneakyQuestion, err := selectQuestionFromCategory(category)
 	if err != nil {
 		return nil, err
 	}
