@@ -198,5 +198,82 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		})
 	})
 
+	/* router.POST("/api/games/:game_id/start", func(c *gin.Context) {
+		session, ok := getSessionFromContext(c)
+		if !ok {
+			return
+		}
+		gameID := c.Param("game_id")
+		game, err := services.GetGameByID(db, gameID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(404, gin.H{
+					"error": "Game not found",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error fetching game: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		_, err = game.IsHost(db, session.ID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(403, gin.H{
+					"error": "You are not the host of this game",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error fetching host: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		err = game.StartGame()
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(404, gin.H{
+					"error": "Game not found",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error starting game: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		utils.Logger.Infof("Game with ID: %s started by host with session ID: %s", gameID, session.SessionID)
+		c.JSON(200, gin.H{
+			"message": "Game started successfully",
+			"game_id": gameID,
+		})
+	}) */
+
 	router.Run(":8080")
+}
+
+func getSessionFromContext(c *gin.Context) (*services.Session, bool) {
+	sessionValue, exists := c.Get("session")
+	if !exists {
+		utils.Logger.Errorf("Session not found in context")
+		c.JSON(500, gin.H{
+			"error": "Internal server error",
+		})
+		return nil, false
+	}
+
+	session, ok := sessionValue.(*services.Session)
+	if !ok {
+		utils.Logger.Errorf("Invalid session type in context")
+		c.JSON(500, gin.H{
+			"error": "Internal server error",
+		})
+		return nil, false
+	}
+
+	return session, true
 }

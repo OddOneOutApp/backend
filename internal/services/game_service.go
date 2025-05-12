@@ -1,7 +1,11 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"math/rand/v2"
+	"os"
 	"time"
 
 	"github.com/OddOneOutApp/backend/internal/config"
@@ -11,10 +15,12 @@ import (
 )
 
 type Game struct {
-	ID          string       `gorm:"primaryKey" json:"id"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	GameMembers []GameMember `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"game_members"`
+	ID              string       `gorm:"primaryKey" json:"id"`
+	CreatedAt       time.Time    `json:"created_at"`
+	UpdatedAt       time.Time    `json:"updated_at"`
+	RegularQuestion string       `json:"regular_question"`
+	SneakyQuestion  string       `json:"sneaky_question"`
+	GameMembers     []GameMember `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"game_members"`
 }
 
 type GameMember struct {
@@ -24,6 +30,44 @@ type GameMember struct {
 	GameID    string         `gorm:"index" json:"game_id"`
 	UserID    datatypes.UUID `gorm:"type:uuid;index" json:"user_id"`
 	Host      bool           `json:"host"`
+}
+
+type Categories struct {
+	Categories []Category `json:"categories"`
+}
+
+type Category struct {
+	Name      string     `json:"name"`
+	Questions []Question `json:"questions"`
+}
+
+type Question struct {
+	Regular string `json:"regular"`
+	Sneaky  string `json:"sneaky"`
+}
+
+/* func (game *Game) StartGame() error {
+
+} */
+
+func selectRandomQuestion() (string, string, error) {
+	jsonFile, err := os.Open("questions.json")
+	if err != nil {
+		return "", "", err
+	}
+	defer jsonFile.Close()
+
+	byteValue, _ := io.ReadAll(jsonFile)
+	var categories Categories
+	err = json.Unmarshal(byteValue, &categories)
+	if err != nil {
+		return "", "", err
+	}
+	randomCategoryIndex := rand.IntN(len(categories.Categories) - 1)
+	randomQuestionIndex := rand.IntN(len(categories.Categories[randomCategoryIndex].Questions) - 1)
+	randomCategory := categories.Categories[randomCategoryIndex]
+	randomQuestion := randomCategory.Questions[randomQuestionIndex]
+	return randomQuestion.Regular, randomQuestion.Sneaky, nil
 }
 
 func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID) (*Game, error) {
@@ -38,12 +82,19 @@ func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID) (*Game, 
 		return nil, result.Error
 	}
 
-	// User not in a game, create new game
-	gameObj := &Game{
-		ID: random.RandomString(4),
+	regularQuestion, sneakyQuestion, err := selectRandomQuestion()
+	if err != nil {
+		return nil, err
 	}
 
-	err := db.Create(gameObj).Error
+	// User not in a game, create new game
+	gameObj := &Game{
+		ID:              random.RandomString(4),
+		RegularQuestion: regularQuestion,
+		SneakyQuestion:  sneakyQuestion,
+	}
+
+	err = db.Create(gameObj).Error
 	if err != nil {
 		return nil, err
 	}
