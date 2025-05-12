@@ -129,10 +129,16 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 
 		game, err := services.CreateGame(db, cfg, session.ID, requestBody.Category)
 		if err != nil {
-			utils.Logger.Errorf("Error creating game: %v", err)
+			if err.Error() == "user is already in a game" {
+				c.JSON(400, gin.H{
+					"error": "You are already in the game",
+				})
+				return
+			}
 			c.JSON(500, gin.H{
 				"error": "Internal server error",
 			})
+			utils.Logger.Errorf("Error creating game: %v", err)
 			return
 		}
 		utils.Logger.Infof("Game created with ID: %s for session ID: %s", game.ID, session.ID)
