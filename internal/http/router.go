@@ -150,7 +150,9 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		utils.Logger.Infof("Game created with ID: %s for session ID: %s", game.ID, session.ID)
 		c.JSON(200, gin.H{
 			"message": "Game created successfully",
-			"game_id": game.ID,
+			"data": gin.H{
+				"game_id": game.ID,
+			},
 		})
 	})
 
@@ -199,7 +201,9 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		utils.Logger.Infof("User with session ID: %s joined game with ID: %s", session.SessionID, gameID)
 		c.JSON(200, gin.H{
 			"message": "Joined game successfully",
-			"game_id": gameID,
+			"data": gin.H{
+				"game_id": gameID,
+			},
 		})
 	})
 
@@ -268,7 +272,9 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			return
 		}
 		c.JSON(200, gin.H{
-			"categories": categories,
+			"data": gin.H{
+				"categories": categories,
+			},
 		})
 	})
 
