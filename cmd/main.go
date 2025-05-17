@@ -6,6 +6,7 @@ import (
 	"github.com/OddOneOutApp/backend/internal/http"
 	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
+	"github.com/OddOneOutApp/backend/internal/websocket"
 )
 
 func main() {
@@ -16,6 +17,7 @@ func main() {
 	db := database.New()
 
 	services.InitializeQuestionService()
+	websocket.Init()
 
 	http.Initialize(db, cfg)
 }

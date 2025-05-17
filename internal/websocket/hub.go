@@ -3,6 +3,7 @@ package websocket
 import (
 	"sync"
 
+	"github.com/OddOneOutApp/backend/internal/utils"
 	"gorm.io/datatypes"
 )
 
@@ -10,6 +11,13 @@ type Hub struct {
 	// Map of game IDs to a list of connections
 	Games map[string]map[*Connection]datatypes.UUID
 	mu    sync.RWMutex
+}
+
+var HubInstance *Hub
+
+func Init() {
+	HubInstance = NewHub()
+	utils.Logger.Infoln("WebSocket Hub initialized")
 }
 
 func NewHub() *Hub {
