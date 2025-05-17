@@ -8,6 +8,7 @@ import (
 	"github.com/OddOneOutApp/backend/internal/config"
 	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
+	"github.com/OddOneOutApp/backend/internal/websocket"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -276,6 +277,65 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 				"categories": categories,
 			},
 		})
+	})
+
+	router.GET("/api/games/:game_id", func(c *gin.Context) {
+		session, ok := getSessionFromContext(c)
+		if !ok {
+			return
+		}
+		gameID := c.Param("game_id")
+		game, err := services.GetGameByID(db, gameID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(404, gin.H{
+					"error": "Game not found",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error fetching game: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		// check if user is in game
+		_, err = game.IsUserInGame(db, session.ID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(403, gin.H{
+					"error": "You are not in this game",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error checking user in game: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+
+		// connect to websocket
+		connection, err := websocket.NewConnection(c.Writer, c.Request)
+		if err != nil {
+			utils.Logger.Errorf("Error creating websocket connection: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		websocket.HubInstance.AddConnection(gameID, connection, session.ID)
+
+		go connection.ReadPump(websocket.HubInstance, gameID)
+		go connection.WritePump()
+		utils.Logger.Infof("WebSocket connection established for game ID: %s", gameID)
+		c.JSON(200, gin.H{
+			"message": "WebSocket connection established",
+			"data": gin.H{
+				"game_id": gameID,
+			},
+		})
+
 	})
 
 	router.Run(":8080")
