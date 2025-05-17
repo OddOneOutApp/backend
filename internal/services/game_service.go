@@ -169,3 +169,16 @@ func (game *Game) IsHost(db *gorm.DB, userID datatypes.UUID) (bool, error) {
 
 	return gameMemberObj.Host, nil
 }
+
+func (game *Game) IsUserInGame(db *gorm.DB, userID datatypes.UUID) (bool, error) {
+	var gameMemberObj GameMember
+	err := db.Where("game_id = ? AND user_id = ?", game.ID, userID).First(&gameMemberObj).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil // User not found in game
+		}
+		return false, err // Some other error occurred
+	}
+
+	return true, nil // User found in game
+}
