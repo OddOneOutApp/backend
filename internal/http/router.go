@@ -9,6 +9,7 @@ import (
 	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"github.com/OddOneOutApp/backend/internal/websocket"
+	"github.com/OddOneOutApp/backend/internal/websocket/messages"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -336,12 +337,12 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		go connection.ReadPump(websocket.HubInstance, gameID)
 		go connection.WritePump()
 		utils.Logger.Infof("WebSocket connection established for game ID: %s", gameID)
-		c.JSON(200, gin.H{
+		/* c.JSON(200, gin.H{
 			"message": "WebSocket connection established",
 			"data": gin.H{
 				"game_id": gameID,
 			},
-		})
+		}) */
 
 	})
 
