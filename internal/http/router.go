@@ -325,6 +325,13 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			return
 		}
 		websocket.HubInstance.AddConnection(gameID, connection, session.ID)
+		joinMsg := messages.JoinMessage(gameID, session.ID)
+		joinMsgBytes, err := json.Marshal(joinMsg)
+		if err != nil {
+			utils.Logger.Errorf("Error marshaling join message: %v", err)
+		} else {
+			websocket.HubInstance.Broadcast(gameID, joinMsgBytes)
+		}
 
 		go connection.ReadPump(websocket.HubInstance, gameID)
 		go connection.WritePump()
