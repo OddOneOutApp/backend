@@ -62,3 +62,13 @@ func (session *Session) Delete(db *gorm.DB) error {
 
 	return nil
 }
+
+func GetSessionByID(db *gorm.DB, id datatypes.UUID) (*Session, error) {
+	var sessionObj Session
+	err := db.First(&sessionObj, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &sessionObj, nil
+}
