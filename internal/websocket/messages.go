@@ -115,25 +115,22 @@ func SendUpdateUserMessage(gameID string, userID datatypes.UUID, username string
 	}, userID)
 }
 
-func SendStartMessage(gameID string, userID datatypes.UUID, duration int) {
+func SendQuestionMessage(gameID string, impostorID datatypes.UUID, question string, impostorQuestion string, gameEnd time.Time) {
 	HubInstance.broadcast(gameID, Message{
-		Type:    MessageTypeStart,
-		GameID:  gameID,
-		UserID:  userID,
-		Content: time.Now().Add(time.Duration(duration) * time.Second).Unix(),
-	})
-}
-
-func SendQuestionMessage(gameID string, impostorID datatypes.UUID, question string, impostorQuestion string) {
-	HubInstance.broadcast(gameID, Message{
-		Type:    MessageTypeQuestion,
-		GameID:  gameID,
-		Content: question,
+		Type:   MessageTypeQuestion,
+		GameID: gameID,
+		Content: map[string]interface{}{
+			"question":      question,
+			"game_end_time": gameEnd.Unix(),
+		},
 	}, impostorID)
 	HubInstance.sendToUser(gameID, impostorID, Message{
-		Type:    MessageTypeQuestion,
-		GameID:  gameID,
-		Content: impostorQuestion,
+		Type:   MessageTypeQuestion,
+		GameID: gameID,
+		Content: map[string]interface{}{
+			"question":      impostorQuestion,
+			"game_end_time": gameEnd.Unix(),
+		},
 	})
 }
 
