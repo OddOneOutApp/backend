@@ -35,7 +35,7 @@ func NewConnection(w http.ResponseWriter, r *http.Request) (*Connection, error) 
 	}, nil
 }
 
-func (c *Connection) ReadPump(hub *Hub, gameID string) {
+func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 	defer func() {
 		hub.removeConnection(gameID, c)
 		c.Conn.Close()

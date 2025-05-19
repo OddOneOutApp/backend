@@ -470,7 +470,7 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		websocket.SendJoinMessage(gameID, session.ID, session.Username)
 		websocket.SendUserStatusMessage(gameID, session.ID, true)
 
-		go connection.ReadPump(websocket.HubInstance, gameID)
+		go connection.ReadPump(db, websocket.HubInstance, gameID)
 		go connection.WritePump()
 		utils.Logger.Infof("WebSocket connection established for game ID: %s", gameID)
 
