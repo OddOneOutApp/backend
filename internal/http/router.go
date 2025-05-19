@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/OddOneOutApp/backend/internal/config"
-	"github.com/OddOneOutApp/backend/internal/messages"
 	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"github.com/OddOneOutApp/backend/internal/websocket"
@@ -327,9 +326,9 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		}
 		websocket.HubInstance.AddConnection(gameID, connection, session.ID)
 
-		messages.SendInitMessage(gameID, session.ID, db)
-		messages.SendJoinMessage(gameID, session.ID, session.Username)
-		messages.SendUserStatusMessage(gameID, session.ID, true)
+		websocket.SendInitMessage(gameID, session.ID, db)
+		websocket.SendJoinMessage(gameID, session.ID, session.Username)
+		websocket.SendUserStatusMessage(gameID, session.ID, true)
 
 		go connection.ReadPump(websocket.HubInstance, gameID)
 		go connection.WritePump()

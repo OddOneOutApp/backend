@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/OddOneOutApp/backend/internal/utils"
@@ -27,19 +28,19 @@ func NewHub() *Hub {
 }
 
 // Add a connection to a game
-func (h *Hub) AddConnection(gameID string, conn *Connection, userID datatypes.UUID) {
+func (h *Hub) AddConnection(gameID string, connection *Connection, userID datatypes.UUID) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	if _, ok := h.Games[gameID]; !ok {
 		h.Games[gameID] = make(map[datatypes.UUID]*Connection)
 	}
-	h.Games[gameID][userID] = conn
-	conn.UserID = userID
+	h.Games[gameID][userID] = connection
+	connection.UserID = userID
 }
 
 // Remove a connection from a game
-func (h *Hub) RemoveConnection(gameID string, conn *Connection) {
+func (h *Hub) removeConnection(gameID string, conn *Connection) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 

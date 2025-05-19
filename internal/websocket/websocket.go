@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 
 	"github.com/OddOneOutApp/backend/internal/utils"
-	"github.com/OddOneOutApp/backend/internal/websocket/messages"
 	"github.com/gorilla/websocket"
 	"gorm.io/datatypes"
 )
@@ -38,7 +37,7 @@ func NewConnection(w http.ResponseWriter, r *http.Request) (*Connection, error) 
 
 func (c *Connection) ReadPump(hub *Hub, gameID string) {
 	defer func() {
-		hub.RemoveConnection(gameID, c)
+		hub.removeConnection(gameID, c)
 		c.Conn.Close()
 
 		SendUserStatusMessage(gameID, c.UserID, false)
@@ -52,19 +51,18 @@ func (c *Connection) ReadPump(hub *Hub, gameID string) {
 		}
 
 		utils.Logger.Debugf("Received message: %s", message)
-		var msg messages.Message
+		var msg Message
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Println("failed to unmarshal message:", err)
 			continue
 		}
 
 		switch msg.Type {
-		case messages.MessageTypeJoin:
+		case MessageTypeJoin:
 			utils.Logger.Debugf("User %s joined game %s", msg.UserID, gameID)
-		case messages.MessageTypeStart:
+		case MessageTypeStart:
 			utils.Logger.Debugf("Game %s started", gameID)
-
-			hub.Broadcast(gameID, message)
+			// TODO: relay start message to other users
 		default:
 			log.Println("unknown message type:", msg.Type)
 		}

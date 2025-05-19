@@ -1,11 +1,10 @@
-package messages
+package websocket
 
 import (
 	"time"
 
 	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
-	"github.com/OddOneOutApp/backend/internal/websocket"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -34,7 +33,7 @@ const (
 )
 
 func SendJoinMessage(gameID string, userID datatypes.UUID, username string) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeJoin,
 		GameID:  gameID,
 		UserID:  userID,
@@ -43,7 +42,7 @@ func SendJoinMessage(gameID string, userID datatypes.UUID, username string) {
 }
 
 func SendUserLeaveMessage(gameID string, userID datatypes.UUID) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:   MessageTypeLeave,
 		GameID: gameID,
 		UserID: userID,
@@ -51,7 +50,7 @@ func SendUserLeaveMessage(gameID string, userID datatypes.UUID) {
 }
 
 func SendUserStatusMessage(gameID string, userID datatypes.UUID, active bool) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeUserStatus,
 		GameID:  gameID,
 		UserID:  userID,
@@ -79,7 +78,7 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 			continue
 		}
 
-		connection := websocket.HubInstance.Games[gameID][member.UserID]
+		connection := HubInstance.Games[gameID][member.UserID]
 		if connection == nil {
 			utils.Logger.Debugf("Connection not found for user ID: %s", member.UserID)
 		}
@@ -91,7 +90,7 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 		utils.Logger.Debugf("User %s is in game %s", member.UserID, gameID)
 	}
 
-	websocket.HubInstance.SendToUser(gameID, userID, Message{
+	HubInstance.sendToUser(gameID, userID, Message{
 		Type:    MessageTypeInit,
 		GameID:  gameID,
 		UserID:  userID,
@@ -100,7 +99,7 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 }
 
 func SendUpdateUserMessage(gameID string, userID datatypes.UUID, username string) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeUpdateUser,
 		GameID:  gameID,
 		UserID:  userID,
@@ -109,7 +108,7 @@ func SendUpdateUserMessage(gameID string, userID datatypes.UUID, username string
 }
 
 func SendStartMessage(gameID string, userID datatypes.UUID, duration int) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeStart,
 		GameID:  gameID,
 		UserID:  userID,
@@ -118,12 +117,12 @@ func SendStartMessage(gameID string, userID datatypes.UUID, duration int) {
 }
 
 func SendQuestionMessage(gameID string, impostorID datatypes.UUID, question string, impostorQuestion string) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeQuestion,
 		GameID:  gameID,
 		Content: question,
 	}, impostorID)
-	websocket.HubInstance.SendToUser(gameID, impostorID, Message{
+	HubInstance.sendToUser(gameID, impostorID, Message{
 		Type:    MessageTypeQuestion,
 		GameID:  gameID,
 		Content: impostorQuestion,
@@ -131,7 +130,7 @@ func SendQuestionMessage(gameID string, impostorID datatypes.UUID, question stri
 }
 
 func SendAnswersMessage(gameID string, answers map[datatypes.UUID]string, actualQuestion string) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:   MessageTypeAnswers,
 		GameID: gameID,
 		Content: map[string]interface{}{
@@ -142,7 +141,7 @@ func SendAnswersMessage(gameID string, answers map[datatypes.UUID]string, actual
 }
 
 func SendVoteResultMessage(gameID string, votes map[datatypes.UUID]datatypes.UUID) {
-	websocket.HubInstance.Broadcast(gameID, Message{
+	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeVoteResult,
 		GameID:  gameID,
 		Content: votes,
