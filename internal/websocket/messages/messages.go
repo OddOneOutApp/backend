@@ -15,6 +15,7 @@ const (
 	MessageTypeJoin       MessageType = "join"
 	MessageTypeLeave      MessageType = "leave"
 	MessageTypeUserStatus MessageType = "user_status"
+	MessageTypeInit       MessageType = "init"
 	MessageTypeUpdateUser MessageType = "update_user"
 	MessageTypeStart      MessageType = "start"
 	MessageTypeQuestion   MessageType = "question"
@@ -67,5 +68,19 @@ func UserStatusMessage(gameID string, userID datatypes.UUID, active bool) Messag
 		GameID:  gameID,
 		UserID:  userID,
 		Content: active,
+	}
+}
+
+type UserInfo struct {
+	ID     datatypes.UUID `json:"id"`
+	Name   string         `json:"name"`
+	Active bool           `json:"active"`
+}
+
+func InitMessage(gameID string, users []UserInfo) Message {
+	return Message{
+		Type:    MessageTypeInit,
+		GameID:  gameID,
+		Content: users,
 	}
 }
