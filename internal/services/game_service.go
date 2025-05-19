@@ -114,13 +114,7 @@ func (game *Game) Join(db *gorm.DB, userID datatypes.UUID) (*GameMember, error) 
 }
 
 func (game *Game) Leave(db *gorm.DB, userID datatypes.UUID) error {
-	var gameMemberObj GameMember
-	err := db.Where("game_id = ? AND user_id = ?", game.ID, userID).First(&gameMemberObj).Error
-	if err != nil {
-		return err
-	}
-
-	err = db.Delete(&gameMemberObj).Error
+	err := db.Where("game_id = ? AND user_id = ?", game.ID, userID).Delete(&GameMember{}).Error
 	if err != nil {
 		return err
 	}
