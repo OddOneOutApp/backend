@@ -16,7 +16,12 @@ type Game struct {
 	UpdatedAt       time.Time    `json:"updated_at"`
 	RegularQuestion string       `json:"regular_question"`
 	SneakyQuestion  string       `json:"sneaky_question"`
+	AnswersEndTime  time.Time    `json:"answers_end_time"`
+	AnswersFinished bool         `json:"answers_finished"`
+	VotingEndTime   time.Time    `json:"voting_end_time"`
+	VotingFinished  bool         `json:"voting_finished"`
 	GameMembers     []GameMember `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"game_members"`
+	Answers         []Answer     `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"answers"`
 }
 
 type GameMember struct {
@@ -28,9 +33,15 @@ type GameMember struct {
 	Host      bool           `json:"host"`
 }
 
-/* func (game *Game) StartGame() error {
-
-} */
+type Answer struct {
+	ID        datatypes.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	GameID    string         `gorm:"index" json:"game_id"`
+	UserID    datatypes.UUID `gorm:"type:uuid;index" json:"user_id"`
+	Answer    string         `json:"answer"`
+	VoteCount int            `json:"vote_count"`
+}
 
 func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID, category string) (*Game, error) {
 	// Check if user is already in a game
@@ -113,6 +124,47 @@ func (game *Game) Join(db *gorm.DB, userID datatypes.UUID) (*GameMember, error) 
 	return gameMemberObj, nil
 }
 
+func (game *Game) SetAnswersEndTime(db *gorm.DB, endTime time.Time) error {
+	game.AnswersEndTime = endTime
+	err := db.Save(game).Error
+	if err != nil {
+		return err
+	}
+	game.SetAnswersFinished(db, false)
+
+	return nil
+}
+
+func (game *Game) SetVotingEndTime(db *gorm.DB, endTime time.Time) error {
+	game.VotingEndTime = endTime
+	err := db.Save(game).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (game *Game) SetVotingFinished(db *gorm.DB, finished bool) error {
+	game.VotingFinished = finished
+	err := db.Save(game).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (game *Game) SetAnswersFinished(db *gorm.DB, finished bool) error {
+	game.AnswersFinished = finished
+	err := db.Save(game).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (game *Game) Leave(db *gorm.DB, userID datatypes.UUID) error {
 	err := db.Where("game_id = ? AND user_id = ?", game.ID, userID).Delete(&GameMember{}).Error
 	if err != nil {
@@ -175,4 +227,72 @@ func (game *Game) IsUserInGame(db *gorm.DB, userID datatypes.UUID) (bool, error)
 	}
 
 	return true, nil // User found in game
+}
+
+func (game *Game) AddAnswer(db *gorm.DB, userID datatypes.UUID, answer string) (*Answer, error) {
+	// Check if user is already in the game
+	var existingMember GameMember
+	result := db.Where("game_id = ? AND user_id = ?", game.ID, userID).First(&existingMember)
+	if result.Error != nil {
+		return nil, fmt.Errorf("user is not in the game")
+	}
+
+	// User is in the game, create new answer
+	answerObj := &Answer{
+		ID:     datatypes.NewUUIDv4(),
+		GameID: game.ID,
+		UserID: userID,
+		Answer: answer,
+	}
+
+	err := db.Create(answerObj).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return answerObj, nil
+}
+
+func (game *Game) GetAnswers(db *gorm.DB) ([]Answer, error) {
+	var answers []Answer
+	err := db.Where("game_id = ?", game.ID).Find(&answers).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return answers, nil
+}
+
+func (game *Game) Vote(db *gorm.DB, userID datatypes.UUID, answerID datatypes.UUID) error {
+	// Check if user is already in the game
+	var existingMember GameMember
+	result := db.Where("game_id = ? AND user_id = ?", game.ID, userID).First(&existingMember)
+	if result.Error != nil {
+		return fmt.Errorf("user is not in the game")
+	}
+
+	// User is in the game, update vote count for the answer
+	var answerObj Answer
+	err := db.Where("id = ? AND game_id = ?", answerID, game.ID).First(&answerObj).Error
+	if err != nil {
+		return err
+	}
+
+	answerObj.VoteCount++
+	err = db.Save(&answerObj).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (game *Game) GetVoteResults(db *gorm.DB) ([]Answer, error) {
+	var answers []Answer
+	err := db.Where("game_id = ?", game.ID).Find(&answers).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return answers, nil
 }
