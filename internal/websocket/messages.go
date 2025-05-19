@@ -21,6 +21,7 @@ type MessageType string
 const (
 	MessageTypeJoin       MessageType = "join"
 	MessageTypeLeave      MessageType = "leave"
+	MessageTypeGameDelete MessageType = "game_delete"
 	MessageTypeUserStatus MessageType = "user_status"
 	MessageTypeInit       MessageType = "init"
 	MessageTypeUpdateUser MessageType = "update_user"
@@ -46,6 +47,13 @@ func SendUserLeaveMessage(gameID string, userID datatypes.UUID) {
 		Type:   MessageTypeLeave,
 		GameID: gameID,
 		UserID: userID,
+	})
+}
+
+func SendGameDeleteMessage(gameID string) {
+	HubInstance.broadcast(gameID, Message{
+		Type:   MessageTypeGameDelete,
+		GameID: gameID,
 	})
 }
 
