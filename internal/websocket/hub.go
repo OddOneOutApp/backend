@@ -51,15 +51,55 @@ func (h *Hub) RemoveConnection(gameID string, conn *Connection) {
 	}
 }
 
-// Broadcast a message to all connections in a game
-func (h *Hub) Broadcast(gameID string, message []byte) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+func (hub *Hub) broadcast(gameID string, message interface{}, exceptUserIDs ...datatypes.UUID) {
+	hub.mu.RLock()
+	defer hub.mu.RUnlock()
 
-	if connections, ok := h.Games[gameID]; ok {
-		for _, conn := range connections {
-			conn.SendMessage(message)
-			utils.Logger.Debugf("Broadcasting message to connection: %s", string(message))
+	data, err := json.Marshal(message)
+	if err != nil {
+		utils.Logger.Errorf("Failed to marshal message: %v", err)
+		return
+	}
+
+	var exceptList []datatypes.UUID
+	if len(exceptUserIDs) > 0 {
+		exceptList = exceptUserIDs
+	}
+
+	if connections, ok := hub.Games[gameID]; ok {
+		for userID, connection := range connections {
+			if len(exceptList) == 0 || !contains(exceptList, userID) {
+				connection.SendMessage(data)
+				utils.Logger.Debugf("Broadcasting message to connection: %s", string(data))
+			}
 		}
 	}
+}
+
+func (hub *Hub) sendToUser(gameID string, userID datatypes.UUID, message interface{}) {
+	hub.mu.RLock()
+	defer hub.mu.RUnlock()
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		utils.Logger.Errorf("Failed to marshal message: %v", err)
+		return
+	}
+
+	if connections, ok := hub.Games[gameID]; ok {
+		if conn, ok := connections[userID]; ok {
+			conn.SendMessage(data)
+			utils.Logger.Debugf("Sending message to user %s in game %s: %s", userID, gameID, string(data))
+		}
+	}
+}
+
+// contains checks if a UUID is present in a slice of UUIDs
+func contains(slice []datatypes.UUID, item datatypes.UUID) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
 }
