@@ -41,12 +41,12 @@ func (c *Connection) ReadPump(hub *Hub, gameID string) {
 		hub.RemoveConnection(gameID, c)
 		c.Conn.Close()
 
-		leaveMsg := messages.LeaveMessage(gameID, c.UserID)
-		leaveMsgBytes, err := json.Marshal(leaveMsg)
+		userStatusMsg := messages.UserStatusMessage(gameID, c.UserID, false)
+		userStatusMsgBytes, err := json.Marshal(userStatusMsg)
 		if err != nil {
-			log.Println("failed to marshal leave message:", err)
+			log.Println("failed to marshal user status message:", err)
 		} else {
-			hub.Broadcast(gameID, leaveMsgBytes)
+			hub.Broadcast(gameID, userStatusMsgBytes)
 		}
 	}()
 
