@@ -208,6 +208,100 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		})
 	})
 
+	router.POST("/api/games/:game_id/leave", func(c *gin.Context) {
+		session, ok := getSessionFromContext(c)
+		if !ok {
+			return
+		}
+		gameID := c.Param("game_id")
+		game, err := services.GetGameByID(db, gameID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(404, gin.H{
+					"error": "Game not found",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error fetching game: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		isHost, err := game.IsHost(db, session.ID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(404, gin.H{
+					"error": "Game not found",
+				})
+				return
+			}
+			if err.Error() == "user is not in the game" {
+				c.JSON(400, gin.H{
+					"error": "You are not in the game",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error checking if user is host: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		if isHost {
+			err = game.Delete(db)
+			if err != nil {
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(404, gin.H{
+						"error": "Game not found",
+					})
+					return
+				}
+				if err.Error() == "user is not in the game" {
+					c.JSON(400, gin.H{
+						"error": "You are not in the game",
+					})
+					return
+				}
+				utils.Logger.Errorf("Error deleting game: %v", err)
+				c.JSON(500, gin.H{
+					"error": "Internal server error",
+				})
+				return
+			}
+			websocket.SendGameDeleteMessage(gameID)
+		} else {
+			err = game.Leave(db, session.ID)
+			if err != nil {
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(404, gin.H{
+						"error": "Game not found",
+					})
+					return
+				}
+				if err.Error() == "user is not in the game" {
+					c.JSON(400, gin.H{
+						"error": "You are not in the game",
+					})
+					return
+				}
+				utils.Logger.Errorf("Error leaving game: %v", err)
+				c.JSON(500, gin.H{
+					"error": "Internal server error",
+				})
+				return
+			}
+		}
+
+		utils.Logger.Infof("User with session ID: %s left game with ID: %s", session.SessionID, gameID)
+		c.JSON(200, gin.H{
+			"message": "Left game successfully",
+			"data": gin.H{
+				"game_id": gameID,
+			},
+		})
+	})
+
 	router.GET("/api/categories", func(c *gin.Context) {
 		categories, err := services.GetAvailableCategories()
 		if err != nil {
