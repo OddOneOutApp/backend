@@ -1,14 +1,16 @@
 package websocket
 
 import (
-	"log"
 	"net/http"
+	"time"
 
 	"encoding/json"
 
+	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"github.com/gorilla/websocket"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type Connection struct {
@@ -46,25 +48,69 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
-			log.Println("read error:", err)
+			utils.Logger.Errorf("read error: %s", err)
 			break
 		}
 
 		utils.Logger.Debugf("Received message: %s", message)
 		var msg Message
 		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Println("failed to unmarshal message:", err)
+			utils.Logger.Errorf("failed to unmarshal message: %s", err)
 			continue
 		}
 
 		switch msg.Type {
-		case MessageTypeJoin:
-			utils.Logger.Debugf("User %s joined game %s", msg.UserID, gameID)
 		case MessageTypeStart:
 			utils.Logger.Debugf("Game %s started", gameID)
-			// TODO: relay start message to other users
+			game, err := services.GetGameByID(db, gameID)
+			if err != nil {
+				utils.Logger.Errorf("failed to get game: %s", err)
+				continue
+			}
+
+			seconds, ok := msg.Content.(int)
+			if !ok {
+				utils.Logger.Errorf("msg.Content is not a number")
+				continue
+			}
+			gameEnd := time.Now().Add(time.Duration(seconds) * time.Second)
+			game.SetAnswersEndTime(db, gameEnd)
+			SendQuestionMessage(gameID, msg.UserID, game.RegularQuestion, game.SneakyQuestion, gameEnd)
+
+		case MessageTypeAnswer:
+			utils.Logger.Debugf("Received answer: %s", msg.Content)
+
+			answer, ok := msg.Content.(string)
+			if !ok {
+				utils.Logger.Errorf("msg.Content is not a string")
+				continue
+			}
+
+			game, err := services.GetGameByID(db, gameID)
+			if err != nil {
+				utils.Logger.Errorf("failed to get game: %s", err)
+				continue
+			}
+
+			game.AddAnswer(db, c.UserID, answer)
+
+		case MessageTypeVote:
+			utils.Logger.Debugf("Received vote: %s", msg.Content)
+
+			vote, ok := msg.Content.(datatypes.UUID)
+			if !ok {
+				utils.Logger.Errorf("msg.Content is not a uuid")
+				continue
+			}
+			game, err := services.GetGameByID(db, gameID)
+			if err != nil {
+				utils.Logger.Errorf("failed to get game: %s", err)
+				continue
+			}
+			game.Vote(db, c.UserID, vote)
+
 		default:
-			log.Println("unknown message type:", msg.Type)
+			utils.Logger.Errorf("unknown message type: %s", msg.Type)
 		}
 
 	}
@@ -76,7 +122,7 @@ func (c *Connection) WritePump() {
 	for message := range c.Send {
 		err := c.Conn.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
-			log.Println("write error:", err)
+			utils.Logger.Errorf("write error: %s", err)
 			break
 		}
 	}
@@ -86,6 +132,6 @@ func (c *Connection) SendMessage(message []byte) {
 	select {
 	case c.Send <- message:
 	default:
-		log.Println("send buffer full, dropping message")
+		utils.Logger.Errorf("send buffer full, dropping message")
 	}
 }
