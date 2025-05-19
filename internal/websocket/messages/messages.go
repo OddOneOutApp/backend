@@ -21,11 +21,12 @@ const (
 	MessageTypeAnswers    MessageType = "answers"
 )
 
-func JoinMessage(gameID string, userID datatypes.UUID) Message {
+func JoinMessage(gameID string, userID datatypes.UUID, username string) Message {
 	return Message{
-		Type:   MessageTypeJoin,
-		GameID: gameID,
-		UserID: userID,
+		Type:    MessageTypeJoin,
+		GameID:  gameID,
+		UserID:  userID,
+		Content: username,
 	}
 }
 
