@@ -302,6 +302,107 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 		})
 	})
 
+	// update username
+	router.POST("/api/user", func(c *gin.Context) {
+		session, ok := getSessionFromContext(c)
+		if !ok {
+			return
+		}
+		type updateUsernameRequest struct {
+			Username string `json:"username"`
+			GameID   string `json:"game_id"`
+		}
+		var requestBody updateUsernameRequest
+		if err := c.ShouldBindJSON(&requestBody); err != nil {
+			c.JSON(400, gin.H{
+				"error": "Invalid request body: " + err.Error(),
+			})
+			return
+		}
+		if requestBody.Username == "" {
+			c.JSON(400, gin.H{
+				"error": "Username is required",
+			})
+			return
+		}
+		if len(requestBody.Username) < 3 || len(requestBody.Username) > 20 {
+			c.JSON(400, gin.H{
+				"error": "Username must be between 3 and 20 characters",
+			})
+			return
+		}
+		// Username can only contain letters, numbers, and underscores
+		for _, r := range requestBody.Username {
+			if !(r >= 'a' && r <= 'z') && !(r >= 'A' && r <= 'Z') && !(r >= '0' && r <= '9') {
+				c.JSON(400, gin.H{
+					"error": "Username can only contain letters, and numbers.",
+				})
+				return
+			}
+		}
+		if requestBody.GameID == "" {
+			c.JSON(400, gin.H{
+				"error": "Game ID is required",
+			})
+			return
+		}
+		game, err := services.GetGameByID(db, requestBody.GameID)
+		if err != nil {
+			c.JSON(400, gin.H{
+				"error": "Game ID is invalid",
+			})
+			return
+		}
+
+		// check if user is in game
+		_, err = game.IsUserInGame(db, session.ID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(403, gin.H{
+					"error": "You are not in this game",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error checking user in game: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+
+		err = session.UpdateUsername(db, requestBody.Username)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(404, gin.H{
+					"error": "Session not found",
+				})
+				return
+			}
+			if err.Error() == "username already taken" {
+				c.JSON(400, gin.H{
+					"error": "Username already taken",
+				})
+				return
+			}
+			utils.Logger.Errorf("Error updating username: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+
+			return
+		}
+
+		websocket.SendUpdateUserMessage(requestBody.GameID, session.ID, requestBody.Username)
+
+		utils.Logger.Infof("Username updated for session ID: %s", session.SessionID)
+		c.JSON(200, gin.H{
+			"message": "Username updated successfully",
+			"data": gin.H{
+				"username": requestBody.Username,
+			},
+		})
+	})
+
 	router.GET("/api/categories", func(c *gin.Context) {
 		categories, err := services.GetAvailableCategories()
 		if err != nil {
