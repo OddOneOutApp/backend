@@ -9,7 +9,7 @@ import (
 
 type Hub struct {
 	// Map of game IDs to a list of connections
-	Games map[string]map[*Connection]bool
+	Games map[string]map[datatypes.UUID]*Connection
 	mu    sync.RWMutex
 }
 
@@ -22,7 +22,7 @@ func Init() {
 
 func NewHub() *Hub {
 	return &Hub{
-		Games: make(map[string]map[*Connection]bool),
+		Games: make(map[string]map[datatypes.UUID]*Connection),
 	}
 }
 
@@ -32,9 +32,9 @@ func (h *Hub) AddConnection(gameID string, conn *Connection, userID datatypes.UU
 	defer h.mu.Unlock()
 
 	if _, ok := h.Games[gameID]; !ok {
-		h.Games[gameID] = make(map[*Connection]bool)
+		h.Games[gameID] = make(map[datatypes.UUID]*Connection)
 	}
-	h.Games[gameID][conn] = true
+	h.Games[gameID][userID] = conn
 	conn.UserID = userID
 }
 
@@ -44,7 +44,7 @@ func (h *Hub) RemoveConnection(gameID string, conn *Connection) {
 	defer h.mu.Unlock()
 
 	if connections, ok := h.Games[gameID]; ok {
-		delete(connections, conn)
+		delete(connections, conn.UserID)
 		if len(connections) == 0 {
 			delete(h.Games, gameID)
 		}
@@ -57,7 +57,7 @@ func (h *Hub) Broadcast(gameID string, message []byte) {
 	defer h.mu.RUnlock()
 
 	if connections, ok := h.Games[gameID]; ok {
-		for conn := range connections {
+		for _, conn := range connections {
 			conn.SendMessage(message)
 			utils.Logger.Debugf("Broadcasting message to connection: %s", string(message))
 		}
