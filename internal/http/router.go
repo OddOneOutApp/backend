@@ -326,12 +326,68 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			return
 		}
 		websocket.HubInstance.AddConnection(gameID, connection, session.ID)
-		joinMsg := messages.JoinMessage(gameID, session.ID)
+
+		var users []messages.UserInfo
+		members, err := game.GetMembers(db)
+		if err != nil {
+			utils.Logger.Errorf("Error fetching game members: %v", err)
+			c.JSON(500, gin.H{
+				"error": "Internal server error",
+			})
+			return
+		}
+		for _, member := range members {
+			/* users = append(users, messages.UserInfo{
+				ID:   member.UserID,
+				Name: member.Username,
+			}) */
+
+			userSession, err := services.GetSessionByID(db, member.UserID)
+			if err != nil {
+				utils.Logger.Errorf("Error fetching session by ID: %v", err)
+				continue
+			}
+
+			if userSession.ID == session.ID {
+				continue
+			}
+
+			connection := websocket.HubInstance.Games[gameID][member.UserID]
+			if connection == nil {
+				utils.Logger.Debugf("Connection not found for user ID: %s", member.UserID)
+			}
+			users = append(users, messages.UserInfo{
+				ID:     member.UserID,
+				Name:   userSession.Username,
+				Active: connection != nil,
+			})
+			utils.Logger.Debugf("User %s is in game %s", member.UserID, gameID)
+		}
+
+		utils.Logger.Debugf("Users in game %s: %v", gameID, users)
+
+		initMsg := messages.InitMessage(gameID, users)
+		initMsgBytes, err := json.Marshal(initMsg)
+		if err != nil {
+			utils.Logger.Errorf("Error marshaling init message: %v", err)
+		} else {
+			connection.SendMessage(initMsgBytes)
+		}
+
+		joinMsg := messages.JoinMessage(gameID, session.ID, session.Username)
 		joinMsgBytes, err := json.Marshal(joinMsg)
 		if err != nil {
 			utils.Logger.Errorf("Error marshaling join message: %v", err)
 		} else {
 			websocket.HubInstance.Broadcast(gameID, joinMsgBytes)
+		}
+
+		userStatusMsg := messages.UserStatusMessage(gameID, session.ID, true)
+		userStatusMsgBytes, err := json.Marshal(userStatusMsg)
+		if err != nil {
+			utils.Logger.Errorf("failed to marshal user status message:", err)
+		} else {
+			websocket.HubInstance.Broadcast(gameID, userStatusMsgBytes)
 		}
 
 		go connection.ReadPump(websocket.HubInstance, gameID)
