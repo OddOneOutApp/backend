@@ -14,7 +14,7 @@ func New() *gorm.DB {
 	}
 
 	// Auto-migrate the models
-	err = db.AutoMigrate(&services.Game{}, &services.GameMember{}, &services.Session{})
+	err = db.AutoMigrate(&services.Game{}, &services.GameMember{}, &services.Session{}, &services.Answer{})
 	if err != nil {
 		utils.Logger.Fatalf("failed to auto-migrate database: %v", err)
 	}
