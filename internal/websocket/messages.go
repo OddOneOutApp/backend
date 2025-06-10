@@ -105,13 +105,15 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 	}
 
 	actualQuestion := game.RegularQuestion
-	if !(game.State == services.GameStateVoting || game.State == services.GameStateFinished) {
-		actualQuestion = ""
-	}
 
 	answers, err := game.GetAnswers(db)
 	if err != nil {
 		utils.Logger.Errorf("Error fetching answers for game %s: %v", gameID, err)
+		answers = []services.Answer{}
+	}
+
+	if !(game.State == services.GameStateVoting || game.State == services.GameStateFinished) {
+		actualQuestion = ""
 		answers = []services.Answer{}
 	}
 
