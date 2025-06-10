@@ -179,10 +179,14 @@ func SendAnswersMessage(gameID string, answers []services.Answer, actualQuestion
 }
 
 func SendVoteResultMessage(gameID string, votes map[datatypes.UUID]datatypes.UUID) {
+	stringVotes := make(map[string]string, len(votes))
+	for k, v := range votes {
+		stringVotes[k.String()] = v.String()
+	}
 	HubInstance.broadcast(gameID, Message{
 		Type:    MessageTypeVoteResult,
 		GameID:  gameID,
-		Content: votes,
+		Content: stringVotes,
 	})
 }
 
