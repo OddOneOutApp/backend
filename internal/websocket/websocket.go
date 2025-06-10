@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"net/http"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -69,9 +68,6 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 				utils.Logger.Errorf("failed to get game: %s", err)
 				continue
 			}
-
-			utils.Logger.Debugf("msg Content: %v", msg.Content)
-			utils.Logger.Debugf("msg.Content type: %T", reflect.TypeOf(msg.Content))
 
 			var seconds int
 			switch v := msg.Content.(type) {
