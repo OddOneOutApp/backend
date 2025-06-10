@@ -124,8 +124,6 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 			"game_state":       game.State,
 			"answers_end_time": game.AnswersEndTime.Unix(),
 			"voting_end_time":  game.VotingEndTime.Unix(),
-			"answers_finished": game.AnswersFinished,
-			"voting_finished":  game.VotingFinished,
 			"question":         question,
 			"actual_question":  actualQuestion,
 			"answers":          answers,
@@ -142,32 +140,38 @@ func SendUpdateUserMessage(gameID string, userID datatypes.UUID, username string
 	}, userID)
 }
 
-func SendQuestionMessage(gameID string, impostorID datatypes.UUID, question string, impostorQuestion string, gameEnd time.Time) {
+func SendQuestionMessage(gameID string, impostorUUIDs []datatypes.UUID, question string, impostorQuestion string, gameEnd time.Time) {
 	HubInstance.broadcast(gameID, Message{
 		Type:   MessageTypeQuestion,
 		GameID: gameID,
 		Content: map[string]interface{}{
-			"question":      question,
-			"game_end_time": gameEnd.Unix(),
+			"question":         question,
+			"answers_end_time": gameEnd.Unix(),
 		},
-	}, impostorID)
-	HubInstance.sendToUser(gameID, impostorID, Message{
-		Type:   MessageTypeQuestion,
-		GameID: gameID,
-		Content: map[string]interface{}{
-			"question":      impostorQuestion,
-			"game_end_time": gameEnd.Unix(),
-		},
-	})
+	}, impostorUUIDs...)
+
+	for _, impostorUUID := range impostorUUIDs {
+		utils.Logger.Debugf("Sending impostor question to user %s in game %s", impostorUUID, gameID)
+		HubInstance.sendToUser(gameID, impostorUUID, Message{
+			Type:   MessageTypeQuestion,
+			GameID: gameID,
+			Content: map[string]interface{}{
+				"question":         impostorQuestion,
+				"answers_end_time": gameEnd.Unix(),
+			},
+		})
+	}
+
 }
 
-func SendAnswersMessage(gameID string, answers map[datatypes.UUID]string, actualQuestion string) {
+func SendAnswersMessage(gameID string, answers []services.Answer, actualQuestion string, votingEnd time.Time) {
 	HubInstance.broadcast(gameID, Message{
 		Type:   MessageTypeAnswers,
 		GameID: gameID,
 		Content: map[string]interface{}{
 			"answers":         answers,
 			"actual_question": actualQuestion,
+			"voting_end_time": votingEnd.Unix(),
 		},
 	})
 }
