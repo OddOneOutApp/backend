@@ -74,6 +74,7 @@ func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID, category
 		ID:              random.RandomString(4),
 		RegularQuestion: regularQuestion,
 		SneakyQuestion:  sneakyQuestion,
+		State:           GameStateLobby,
 	}
 
 	err = db.Create(gameObj).Error
