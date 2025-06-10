@@ -94,6 +94,7 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 			ID:     member.UserID,
 			Name:   userSession.Username,
 			Active: connection != nil,
+			Host:   member.Host,
 		})
 		utils.Logger.Debugf("User %s is in game %s", member.UserID, gameID)
 	}
@@ -194,4 +195,5 @@ type UserInfo struct {
 	ID     datatypes.UUID `json:"id"`
 	Name   string         `json:"name"`
 	Active bool           `json:"active"`
+	Host   bool           `json:"host"`
 }
