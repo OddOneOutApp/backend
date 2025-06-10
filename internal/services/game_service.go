@@ -32,6 +32,7 @@ type GameMember struct {
 	GameID    string         `gorm:"index" json:"game_id"`
 	UserID    datatypes.UUID `gorm:"type:uuid;index" json:"user_id"`
 	Host      bool           `json:"host"`
+	Impostor  bool           `json:"impostor"`
 }
 
 type Answer struct {
@@ -306,4 +307,63 @@ func (game *Game) GetVoteResults(db *gorm.DB) ([]Answer, error) {
 	}
 
 	return answers, nil
+}
+
+func GetImpostors(db *gorm.DB, gameID string) ([]GameMember, error) {
+	var impostors []GameMember
+	err := db.Where("game_id = ? AND impostor = ?", gameID, true).Find(&impostors).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return impostors, nil
+}
+
+func SelectImpostors(db *gorm.DB, gameID string, count int) ([]GameMember, error) {
+	var gameMembers []GameMember
+	err := db.Where("game_id = ?", gameID).Find(&gameMembers).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if len(gameMembers) < count {
+		return nil, fmt.Errorf("not enough players to select impostors")
+	}
+
+	selectedImpostors := random.RandomSelect(gameMembers, count)
+
+	for i := range selectedImpostors {
+		selectedImpostors[i].Impostor = true
+		err = db.Save(&selectedImpostors[i]).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return selectedImpostors, nil
+}
+
+func IsGameMemberImpostor(db *gorm.DB, gameID string, userID datatypes.UUID) (bool, error) {
+	var gameMember GameMember
+	err := db.Where("game_id = ? AND user_id = ?", gameID, userID).First(&gameMember).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil // User not found in game
+		}
+		return false, err // Some other error occurred
+	}
+
+	return gameMember.Impostor, nil
+}
+
+func (game *Game) GetQuestionForUser(db *gorm.DB, userID datatypes.UUID) (string, error) {
+	isImpostor, err := IsGameMemberImpostor(db, game.ID, userID)
+	if err != nil {
+		return "", err
+	}
+
+	if isImpostor {
+		return game.SneakyQuestion, nil
+	}
+	return game.RegularQuestion, nil
 }
