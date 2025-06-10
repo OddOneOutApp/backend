@@ -31,6 +31,7 @@ type GameMember struct {
 	UserID    datatypes.UUID `gorm:"type:uuid;index" json:"user_id"`
 	Host      bool           `json:"host"`
 	Impostor  bool           `json:"impostor"`
+	Vote      datatypes.UUID `gorm:"type:uuid;index" json:"vote"`
 }
 
 type Answer struct {
@@ -277,8 +278,8 @@ func (game *Game) Vote(db *gorm.DB, userID datatypes.UUID, answerID datatypes.UU
 		return err
 	}
 
-	answerObj.VoteCount++
-	err = db.Save(&answerObj).Error
+	existingMember.Vote = answerID
+	err = db.Save(&existingMember).Error
 	if err != nil {
 		return err
 	}
@@ -286,14 +287,21 @@ func (game *Game) Vote(db *gorm.DB, userID datatypes.UUID, answerID datatypes.UU
 	return nil
 }
 
-func (game *Game) GetVoteResults(db *gorm.DB) ([]Answer, error) {
-	var answers []Answer
-	err := db.Where("game_id = ?", game.ID).Find(&answers).Error
+func (game *Game) GetVoteResults(db *gorm.DB) (map[datatypes.UUID]datatypes.UUID, error) {
+	var gameMembers []GameMember
+	err := db.Where("game_id = ?", game.ID).Find(&gameMembers).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return answers, nil
+	votesMap := make(map[datatypes.UUID]datatypes.UUID)
+	for _, member := range gameMembers {
+		if member.Vote != (datatypes.UUID{}) {
+			votesMap[member.UserID] = member.Vote
+		}
+	}
+
+	return votesMap, nil
 }
 
 func GetImpostors(db *gorm.DB, gameID string) ([]GameMember, error) {
