@@ -98,11 +98,38 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 		utils.Logger.Debugf("User %s is in game %s", member.UserID, gameID)
 	}
 
+	question, err := game.GetQuestionForUser(db, userID)
+	if err != nil {
+		utils.Logger.Errorf("Error fetching question for user %s in game %s: %v", userID, gameID, err)
+		question = ""
+	}
+
+	actualQuestion := game.RegularQuestion
+	if !(game.State == services.GameStateVoting || game.State == services.GameStateFinished) {
+		actualQuestion = ""
+	}
+
+	answers, err := game.GetAnswers(db)
+	if err != nil {
+		utils.Logger.Errorf("Error fetching answers for game %s: %v", gameID, err)
+		answers = []services.Answer{}
+	}
+
 	HubInstance.sendToUser(gameID, userID, Message{
-		Type:    MessageTypeInit,
-		GameID:  gameID,
-		UserID:  userID,
-		Content: users,
+		Type:   MessageTypeInit,
+		GameID: gameID,
+		UserID: userID,
+		Content: map[string]interface{}{
+			"users":            users,
+			"game_state":       game.State,
+			"answers_end_time": game.AnswersEndTime.Unix(),
+			"voting_end_time":  game.VotingEndTime.Unix(),
+			"answers_finished": game.AnswersFinished,
+			"voting_finished":  game.VotingFinished,
+			"question":         question,
+			"actual_question":  actualQuestion,
+			"answers":          answers,
+		},
 	})
 }
 
