@@ -14,6 +14,7 @@ type Game struct {
 	ID              string       `gorm:"primaryKey" json:"id"`
 	CreatedAt       time.Time    `json:"created_at"`
 	UpdatedAt       time.Time    `json:"updated_at"`
+	Category        string       `gorm:"index" json:"category"`
 	RegularQuestion string       `json:"regular_question"`
 	SneakyQuestion  string       `json:"sneaky_question"`
 	AnswersEndTime  time.Time    `json:"answers_end_time"`
@@ -64,20 +65,16 @@ func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID, category
 		return nil, result.Error
 	}
 
-	regularQuestion, sneakyQuestion, err := selectQuestionFromCategory(category)
-	if err != nil {
-		return nil, err
-	}
-
 	// User not in a game, create new game
 	gameObj := &Game{
-		ID:              random.RandomString(4),
-		RegularQuestion: regularQuestion,
-		SneakyQuestion:  sneakyQuestion,
-		State:           GameStateLobby,
+		ID:             random.RandomString(4),
+		Category:       category,
+		State:          GameStateLobby,
+		AnswersEndTime: time.Unix(0, 0).UTC(),
+		VotingEndTime:  time.Unix(0, 0).UTC(),
 	}
 
-	err = db.Create(gameObj).Error
+	err := db.Create(gameObj).Error
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +261,7 @@ func (game *Game) Vote(db *gorm.DB, userID datatypes.UUID, answerID datatypes.UU
 
 	// User is in the game, update vote count for the answer
 	var answerObj Answer
-	err := db.Where("id = ? AND game_id = ?", answerID, game.ID).First(&answerObj).Error
+	err := db.Where("user_id = ? AND game_id = ?", answerID, game.ID).First(&answerObj).Error
 	if err != nil {
 		return err
 	}

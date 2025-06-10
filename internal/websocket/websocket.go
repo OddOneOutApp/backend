@@ -87,7 +87,7 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 				continue
 			}
 
-			impostors, err := game.GetImpostors(db)
+			impostors, err := game.SelectImpostors(db, 1)
 			if err != nil {
 				utils.Logger.Errorf("failed to get impostors: %s", err)
 				continue
@@ -96,6 +96,18 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 			impostorUUIDs := make([]datatypes.UUID, 0, len(impostors))
 			for _, imp := range impostors {
 				impostorUUIDs = append(impostorUUIDs, imp.UserID)
+			}
+
+			regularQuestion, sneakyQuestion, err := services.SelectQuestionFromCategory(game.Category)
+			if err != nil {
+				utils.Logger.Errorf("failed to select question: %s", err)
+				continue
+			}
+			game.RegularQuestion = regularQuestion
+			game.SneakyQuestion = sneakyQuestion
+			if err := db.Save(&game).Error; err != nil {
+				utils.Logger.Errorf("failed to save game: %s", err)
+				continue
 			}
 
 			gameEnd := time.Now().Add(time.Duration(seconds) * time.Second)
@@ -122,11 +134,22 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 		case MessageTypeVote:
 			utils.Logger.Debugf("Received vote: %s", msg.Content)
 
-			vote, ok := msg.Content.(datatypes.UUID)
-			if !ok {
-				utils.Logger.Errorf("msg.Content is not a uuid")
+			// Expecting msg.Content to be a []interface{} representing the UUID bytes
+			contentSlice, ok := msg.Content.([]interface{})
+			if !ok || len(contentSlice) != 16 {
+				utils.Logger.Errorf("msg.Content is not a valid uuid slice")
 				continue
 			}
+			var uuidBytes [16]byte
+			for i, v := range contentSlice {
+				f, ok := v.(float64)
+				if !ok {
+					utils.Logger.Errorf("msg.Content element is not a float64")
+					continue
+				}
+				uuidBytes[i] = byte(f)
+			}
+			vote := datatypes.UUID(uuidBytes)
 			game, err := services.GetGameByID(db, gameID)
 			if err != nil {
 				utils.Logger.Errorf("failed to get game: %s", err)

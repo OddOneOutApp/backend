@@ -45,7 +45,7 @@ func selectRandomQuestion() (string, string, error) {
 	return randomQuestion.Regular, randomQuestion.Sneaky, nil
 }
 
-func selectQuestionFromCategory(categoryName string) (string, string, error) {
+func SelectQuestionFromCategory(categoryName string) (string, string, error) {
 	for _, category := range categoriesList.Categories {
 		if category.Name == categoryName {
 			randomQuestionIndex := rand.IntN(len(category.Questions) - 1)
