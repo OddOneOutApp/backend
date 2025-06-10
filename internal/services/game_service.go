@@ -17,9 +17,7 @@ type Game struct {
 	RegularQuestion string       `json:"regular_question"`
 	SneakyQuestion  string       `json:"sneaky_question"`
 	AnswersEndTime  time.Time    `json:"answers_end_time"`
-	AnswersFinished bool         `json:"answers_finished"`
 	VotingEndTime   time.Time    `json:"voting_end_time"`
-	VotingFinished  bool         `json:"voting_finished"`
 	State           GameState    `gorm:"default:'lobby'" json:"state"`
 	GameMembers     []GameMember `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"game_members"`
 	Answers         []Answer     `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"answers"`
@@ -42,7 +40,6 @@ type Answer struct {
 	GameID    string         `gorm:"index" json:"game_id"`
 	UserID    datatypes.UUID `gorm:"type:uuid;index" json:"user_id"`
 	Answer    string         `json:"answer"`
-	VoteCount int            `json:"vote_count"`
 }
 
 type GameState string
@@ -52,7 +49,6 @@ const (
 	GameStateAnswering GameState = "answering"
 	GameStateVoting    GameState = "voting"
 	GameStateFinished  GameState = "finished"
-	GameStateDeleted   GameState = "deleted"
 )
 
 func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID, category string) (*Game, error) {
@@ -157,18 +153,9 @@ func (game *Game) SetVotingEndTime(db *gorm.DB, endTime time.Time) error {
 	return nil
 }
 
-func (game *Game) SetVotingFinished(db *gorm.DB, finished bool) error {
-	game.VotingFinished = finished
-	err := db.Save(game).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (game *Game) SetAnswersFinished(db *gorm.DB, finished bool) error {
-	game.AnswersFinished = finished
+func (game *Game) SetVotingEndTimeAndGameState(db *gorm.DB, endTime time.Time) error {
+	game.VotingEndTime = endTime
+	game.State = GameStateVoting
 	err := db.Save(game).Error
 	if err != nil {
 		return err
