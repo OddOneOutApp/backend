@@ -2,6 +2,8 @@ package websocket
 
 import (
 	"net/http"
+	"reflect"
+	"strconv"
 	"time"
 
 	"encoding/json"
@@ -68,11 +70,27 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 				continue
 			}
 
-			seconds, ok := msg.Content.(int)
-			if !ok {
-				utils.Logger.Errorf("msg.Content is not a number")
+			utils.Logger.Debugf("msg Content: %v", msg.Content)
+			utils.Logger.Debugf("msg.Content type: %T", reflect.TypeOf(msg.Content))
+
+			var seconds int
+			switch v := msg.Content.(type) {
+			case float64:
+				seconds = int(v)
+			case int:
+				seconds = v
+			case string:
+				parsed, err := strconv.Atoi(v)
+				if err != nil {
+					utils.Logger.Errorf("failed to parse seconds from string: %s", err)
+					continue
+				}
+				seconds = parsed
+			default:
+				utils.Logger.Errorf("msg.Content is not a valid number type")
 				continue
 			}
+
 			gameEnd := time.Now().Add(time.Duration(seconds) * time.Second)
 			game.SetAnswersEndTime(db, gameEnd)
 			SendQuestionMessage(gameID, msg.UserID, game.RegularQuestion, game.SneakyQuestion, gameEnd)
