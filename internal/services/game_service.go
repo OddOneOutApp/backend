@@ -304,9 +304,9 @@ func (game *Game) GetVoteResults(db *gorm.DB) (map[datatypes.UUID]datatypes.UUID
 	return votesMap, nil
 }
 
-func GetImpostors(db *gorm.DB, gameID string) ([]GameMember, error) {
+func (game *Game) GetImpostors(db *gorm.DB) ([]GameMember, error) {
 	var impostors []GameMember
-	err := db.Where("game_id = ? AND impostor = ?", gameID, true).Find(&impostors).Error
+	err := db.Where("game_id = ? AND impostor = ?", game.ID, true).Find(&impostors).Error
 	if err != nil {
 		return nil, err
 	}
@@ -314,9 +314,9 @@ func GetImpostors(db *gorm.DB, gameID string) ([]GameMember, error) {
 	return impostors, nil
 }
 
-func SelectImpostors(db *gorm.DB, gameID string, count int) ([]GameMember, error) {
+func (game *Game) SelectImpostors(db *gorm.DB, count int) ([]GameMember, error) {
 	var gameMembers []GameMember
-	err := db.Where("game_id = ?", gameID).Find(&gameMembers).Error
+	err := db.Where("game_id = ?", game.ID).Find(&gameMembers).Error
 	if err != nil {
 		return nil, err
 	}
@@ -338,9 +338,9 @@ func SelectImpostors(db *gorm.DB, gameID string, count int) ([]GameMember, error
 	return selectedImpostors, nil
 }
 
-func IsGameMemberImpostor(db *gorm.DB, gameID string, userID datatypes.UUID) (bool, error) {
+func (game *Game) IsGameMemberImpostor(db *gorm.DB, userID datatypes.UUID) (bool, error) {
 	var gameMember GameMember
-	err := db.Where("game_id = ? AND user_id = ?", gameID, userID).First(&gameMember).Error
+	err := db.Where("game_id = ? AND user_id = ?", game.ID, userID).First(&gameMember).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil // User not found in game
@@ -352,7 +352,7 @@ func IsGameMemberImpostor(db *gorm.DB, gameID string, userID datatypes.UUID) (bo
 }
 
 func (game *Game) GetQuestionForUser(db *gorm.DB, userID datatypes.UUID) (string, error) {
-	isImpostor, err := IsGameMemberImpostor(db, game.ID, userID)
+	isImpostor, err := game.IsGameMemberImpostor(db, userID)
 	if err != nil {
 		return "", err
 	}
