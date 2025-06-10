@@ -20,6 +20,7 @@ type Game struct {
 	AnswersFinished bool         `json:"answers_finished"`
 	VotingEndTime   time.Time    `json:"voting_end_time"`
 	VotingFinished  bool         `json:"voting_finished"`
+	State           GameState    `gorm:"default:'lobby'" json:"state"`
 	GameMembers     []GameMember `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"game_members"`
 	Answers         []Answer     `gorm:"foreignKey:GameID;constraint:OnDelete:CASCADE" json:"answers"`
 }
@@ -42,6 +43,16 @@ type Answer struct {
 	Answer    string         `json:"answer"`
 	VoteCount int            `json:"vote_count"`
 }
+
+type GameState string
+
+const (
+	GameStateLobby     GameState = "lobby"
+	GameStateAnswering GameState = "answering"
+	GameStateVoting    GameState = "voting"
+	GameStateFinished  GameState = "finished"
+	GameStateDeleted   GameState = "deleted"
+)
 
 func CreateGame(db *gorm.DB, cfg *config.Config, hostID datatypes.UUID, category string) (*Game, error) {
 	// Check if user is already in a game
