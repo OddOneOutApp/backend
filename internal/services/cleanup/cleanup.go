@@ -6,7 +6,6 @@ import (
 	"github.com/OddOneOutApp/backend/internal/services"
 	"github.com/OddOneOutApp/backend/internal/utils"
 	"github.com/OddOneOutApp/backend/internal/websocket"
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -22,15 +21,17 @@ func StartEndScheduler(db *gorm.DB) {
 					//utils.Logger.Warnf("Game %s has zero answers end time, skipping", game.ID)
 					continue
 				}
-				if !game.AnswersFinished {
-					game.SetAnswersFinished(db, true)
-					err := db.Save(&game).Error
-					if err != nil {
-						utils.Logger.Errorf("Error saving game: %s", err)
-						continue
-					}
+				if game.State == services.GameStateAnswering {
+					game.SetVotingEndTimeAndGameState(db, now.Add(30*time.Second))
+
 					time.Sleep(1 * time.Second)
-					processGameEnd(db, &game)
+					answers, err := game.GetAnswers(db)
+					if err != nil {
+						utils.Logger.Errorf("Error fetching answers: %s", err)
+						return
+					}
+
+					websocket.SendAnswersMessage(game.ID, answers, game.RegularQuestion, game.VotingEndTime)
 					utils.Logger.Infof("Game %s answers finished", game.ID)
 				}
 			}
@@ -40,8 +41,8 @@ func StartEndScheduler(db *gorm.DB) {
 					//utils.Logger.Warnf("Game %s has zero voting end time, skipping", game.ID)
 					continue
 				}
-				if !game.VotingFinished {
-					game.SetVotingFinished(db, true)
+				if game.State == services.GameStateVoting {
+					game.State = services.GameStateFinished
 					err := db.Save(&game).Error
 					if err != nil {
 						utils.Logger.Errorf("Error saving game: %s", err)
@@ -54,33 +55,11 @@ func StartEndScheduler(db *gorm.DB) {
 						utils.Logger.Errorf("Error fetching votes: %s", err)
 						continue
 					}
-					votesMap := make(map[datatypes.UUID]datatypes.UUID)
-					for _, vote := range votes {
-						votesMap[vote.UserID] = vote.ID
-					}
 
-					websocket.SendVoteResultMessage(game.ID, votesMap)
+					websocket.SendVoteResultMessage(game.ID, votes)
 					utils.Logger.Infof("Game %s voting finished", game.ID)
 				}
 			}
 		}
 	}()
-}
-
-func processGameEnd(db *gorm.DB, game *services.Game) {
-	// send answers to all players
-	answers, err := game.GetAnswers(db)
-	if err != nil {
-		utils.Logger.Errorf("Error fetching answers: %s", err)
-		return
-	}
-
-	answersMap := make(map[datatypes.UUID]string)
-	for _, ans := range answers {
-		answersMap[ans.UserID] = ans.Answer
-	}
-	websocket.SendAnswersMessage(game.ID, answersMap, game.RegularQuestion)
-	game.SetVotingEndTime(db, game.AnswersEndTime.Add(30*time.Second))
-	game.SetVotingFinished(db, false)
-
 }
