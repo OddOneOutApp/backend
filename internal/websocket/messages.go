@@ -95,6 +95,7 @@ func SendInitMessage(gameID string, userID datatypes.UUID, db *gorm.DB) {
 			Name:   userSession.Username,
 			Active: connection != nil,
 			Host:   member.Host,
+			Vote:   member.Vote,
 		})
 		utils.Logger.Debugf("User %s is in game %s", member.UserID, gameID)
 	}
@@ -196,4 +197,5 @@ type UserInfo struct {
 	Name   string         `json:"name"`
 	Active bool           `json:"active"`
 	Host   bool           `json:"host"`
+	Vote   datatypes.UUID `json:"vote,omitempty"` // Optional, only set if the user has voted
 }
