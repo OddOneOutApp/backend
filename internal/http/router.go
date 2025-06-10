@@ -40,6 +40,7 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			}
 			requestBody := struct {
 				Username string `json:"username"`
+				Category string `json:"category,omitempty"`
 			}{}
 			err = json.NewDecoder(c.Request.Body).Decode(&requestBody)
 			if err != nil {
@@ -63,6 +64,8 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 			c.SetCookie("session_id", session.SessionID, 72*60*60, "/", cfg.Host, cfg.Secure, true)
 			utils.Logger.Debugf("New session created with ID: %s", session.SessionID)
 			c.Set("session", session)
+			c.Set("username", session.Username)
+			c.Set("category", requestBody.Category)
 			c.Next()
 			return
 		}
@@ -120,10 +123,8 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 
 		var requestBody createGameRequest
 		if err := c.ShouldBindJSON(&requestBody); err != nil {
-			c.JSON(400, gin.H{
-				"error": "Invalid request body: " + err.Error(),
-			})
-			return
+			requestBody.Username = session.Username
+			requestBody.Category = c.GetString("category")
 		}
 
 		// Make sure category is not empty
