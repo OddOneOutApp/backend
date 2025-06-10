@@ -18,6 +18,10 @@ func StartEndScheduler(db *gorm.DB) {
 			now := time.Now()
 			db.Where("answers_end_time <= ?", now).Find(&games)
 			for _, game := range games {
+				if game.AnswersEndTime.IsZero() {
+					//utils.Logger.Warnf("Game %s has zero answers end time, skipping", game.ID)
+					continue
+				}
 				if !game.AnswersFinished {
 					game.SetAnswersFinished(db, true)
 					err := db.Save(&game).Error
@@ -32,6 +36,10 @@ func StartEndScheduler(db *gorm.DB) {
 			}
 			db.Where("voting_end_time <= ?", now).Find(&games)
 			for _, game := range games {
+				if game.VotingEndTime.IsZero() {
+					//utils.Logger.Warnf("Game %s has zero voting end time, skipping", game.ID)
+					continue
+				}
 				if !game.VotingFinished {
 					game.SetVotingFinished(db, true)
 					err := db.Save(&game).Error
