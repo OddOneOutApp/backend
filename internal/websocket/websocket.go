@@ -87,9 +87,20 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 				continue
 			}
 
+			impostors, err := game.GetImpostors(db)
+			if err != nil {
+				utils.Logger.Errorf("failed to get impostors: %s", err)
+				continue
+			}
+
+			impostorUUIDs := make([]datatypes.UUID, 0, len(impostors))
+			for _, imp := range impostors {
+				impostorUUIDs = append(impostorUUIDs, imp.UserID)
+			}
+
 			gameEnd := time.Now().Add(time.Duration(seconds) * time.Second)
-			game.SetAnswersEndTime(db, gameEnd)
-			SendQuestionMessage(gameID, msg.UserID, game.RegularQuestion, game.SneakyQuestion, gameEnd)
+			game.SetAnswersEndTimeAndGameState(db, gameEnd)
+			SendQuestionMessage(gameID, impostorUUIDs, game.RegularQuestion, game.SneakyQuestion, gameEnd)
 
 		case MessageTypeAnswer:
 			utils.Logger.Debugf("Received answer: %s", msg.Content)
