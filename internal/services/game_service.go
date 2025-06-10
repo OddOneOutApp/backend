@@ -133,19 +133,9 @@ func (game *Game) Join(db *gorm.DB, userID datatypes.UUID) (*GameMember, error) 
 	return gameMemberObj, nil
 }
 
-func (game *Game) SetAnswersEndTime(db *gorm.DB, endTime time.Time) error {
+func (game *Game) SetAnswersEndTimeAndGameState(db *gorm.DB, endTime time.Time) error {
 	game.AnswersEndTime = endTime
-	err := db.Save(game).Error
-	if err != nil {
-		return err
-	}
-	game.SetAnswersFinished(db, false)
-
-	return nil
-}
-
-func (game *Game) SetVotingEndTime(db *gorm.DB, endTime time.Time) error {
-	game.VotingEndTime = endTime
+	game.State = GameStateAnswering
 	err := db.Save(game).Error
 	if err != nil {
 		return err
