@@ -361,3 +361,12 @@ func (game *Game) GetCategory(db *gorm.DB) (string, error) {
 	return gameObj.Category, nil
 }
 
+func (game *Game) GetHost(db *gorm.DB) (*GameMember, error) {
+	var host GameMember
+	err := db.Where("game_id = ? AND host = ?", game.ID, true).First(&host).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &host, nil
+}
