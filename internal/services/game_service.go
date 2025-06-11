@@ -350,3 +350,14 @@ func (game *Game) GetQuestionForUser(db *gorm.DB, userID datatypes.UUID) (string
 	}
 	return game.RegularQuestion, nil
 }
+
+func (game *Game) GetCategory(db *gorm.DB) (string, error) {
+	var gameObj Game
+	err := db.First(&gameObj, "id = ?", game.ID).Error
+	if err != nil {
+		return "", err
+	}
+
+	return gameObj.Category, nil
+}
+
