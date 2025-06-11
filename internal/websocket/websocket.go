@@ -69,6 +69,16 @@ func (c *Connection) ReadPump(db *gorm.DB, hub *Hub, gameID string) {
 				continue
 			}
 
+			host, err := game.GetHost(db)
+			if err != nil {
+				utils.Logger.Errorf("failed to get game host: %s", err)
+				continue
+			}
+			if host.UserID != c.UserID {
+				utils.Logger.Errorf("user %s is not the host of game %s", c.UserID, gameID)
+				continue
+			}
+
 			var seconds int
 			switch v := msg.Content.(type) {
 			case float64:
