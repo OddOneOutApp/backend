@@ -477,6 +477,18 @@ func Initialize(db *gorm.DB, cfg *config.Config) {
 
 	})
 
+	router.GET("/api/user/id", func(c *gin.Context) {
+		session, ok := getSessionFromContext(c)
+		if !ok {
+			return
+		}
+		c.JSON(200, gin.H{
+			"data": gin.H{
+				"user_id": session.ID,
+			},
+		})
+	})
+
 	router.Run(":8080")
 }
 
